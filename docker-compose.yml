@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: soundplay_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - "3306:3306"
+    volumes:
+      - soundplay-data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - soundplay-net
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: soundplay_pma
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - soundplay-net
+
+  backend:
+    build:
+      context: ./backend
+    container_name: soundplay_backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/storage/musics:/app/storage/musics
+      - ./backend/storage/cover_playlist:/app/storage/cover_playlist
+      - ./backend/cache_previews:/app/cache_previews
+      - ./backend/logs:/app/logs
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - soundplay-net
+
+volumes:
+  soundplay-data:
+
+networks:
+  soundplay-net:
