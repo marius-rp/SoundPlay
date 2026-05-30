@@ -5,6 +5,7 @@ export interface IUser {
   email: string
   name: string
   surname: string
-  role: IRole
+  role?: IRole
+  role_id?: number
   created_at: string
 }

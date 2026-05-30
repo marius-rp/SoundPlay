@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom"
 import { formatTracksForPlayer } from "../utils/player.helper"
 import { usePlayer } from "../context/PlayerContext"
 import { useToast } from "../context/ToastContext"
+import Tooltip from "../components/ui/Tooltip"
 
 const Library: React.FC = () => {
   const navigate = useNavigate()
@@ -106,12 +107,13 @@ const Library: React.FC = () => {
             Bibliothèque
           </h1>
 
-          <IconButton
-            className="border-2 border-black bg-[#1db954] hover:bg-[#1db954]/50"
-            icon={<Plus size={24} className="text-black" />}
-            onClick={() => setIsModalOpen(true)}
-            title="Créer une playlist"
-          />
+          <Tooltip text="Créer une playlist" position="bottom">
+            <IconButton
+              className="border-2 border-black bg-[#1db954] hover:bg-[#1db954]/50"
+              icon={<Plus size={24} className="text-black" />}
+              onClick={() => setIsModalOpen(true)}
+            />
+          </Tooltip>
         </div>
 
         <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
@@ -163,9 +165,13 @@ const Library: React.FC = () => {
                           className="text-white drop-shadow-md"
                         />
                       </div>
-                    ) : playlist.cover_image ? (
+                    ) : playlist.cover_image ||
+                      (playlist as any).first_track_cover ? (
                       <img
-                        src={playlist.cover_image}
+                        src={
+                          playlist.cover_image ||
+                          (playlist as any).first_track_cover
+                        }
                         alt={playlist.title}
                         className="w-full h-full object-cover"
                       />

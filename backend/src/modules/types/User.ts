@@ -1,4 +1,5 @@
 import { RowDataPacket } from "mysql2"
+import { Role } from "./Role"
 
 export interface User {
   id: number
@@ -6,7 +7,8 @@ export interface User {
   password?: string
   name: string
   surname: string
-  role_id: number
+  role?: Role
+  role_id?: number
   created_at: Date
 }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import {
   Play,
   Pause,
@@ -11,6 +11,8 @@ import {
   Pen,
   Shuffle,
   Camera,
+  Upload,
+  Download,
 } from "lucide-react"
 import { playlistTrackService } from "../service/playlistTrackService"
 import { playlistService } from "../service/playlistService"
@@ -25,17 +27,24 @@ import {
   DropdownDivider,
 } from "../components/dropdown/DropdownMenu"
 import Modal from "../components/modal/Modal"
+import ConfirmModal from "../components/modal/ConfirmModal"
 import BackButton from "../components/buttons/BackButton"
 import Button from "../components/buttons/Button"
+import Tooltip from "../components/ui/Tooltip"
+import { FileUploadZone } from "../components/dropdown/FileUploadZone"
 
 const PlaylistView: React.FC = () => {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { showToast } = useToast()
 
   const [tracks, setTracks] = useState<IPlaylistTrack[]>([])
   const [playlist, setPlaylist] = useState<IPlaylist | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRemoving, setIsRemoving] = useState<string | null>(null)
+  const [isDeletingPlaylist, setIsDeletingPlaylist] = useState<boolean>(false)
+
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false)
 
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false)
   const [isEditing, setIsEditing] = useState<boolean>(false)
@@ -47,6 +56,8 @@ const PlaylistView: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false)
 
   const {
     playTrack,
@@ -112,6 +123,29 @@ const PlaylistView: React.FC = () => {
       showToast("Erreur de connexion avec le serveur.", "error")
     } finally {
       setIsRemoving(null)
+    }
+  }
+
+  const handleConfirmDeletePlaylist = async () => {
+    if (!id) return
+    setIsConfirmModalOpen(false)
+    setIsDeletingPlaylist(true)
+    try {
+      const res = await playlistService.deletePlaylist(Number(id))
+
+      if (res.success) {
+        showToast("Playlist supprimée avec succès.", "success")
+        navigate(-1)
+      } else {
+        showToast(
+          res.error?.message || "Erreur lors de la suppression de la playlist.",
+          "error",
+        )
+      }
+    } catch (error) {
+      showToast("Erreur de connexion avec le serveur.", "error")
+    } finally {
+      setIsDeletingPlaylist(false)
     }
   }
 
@@ -208,6 +242,22 @@ const PlaylistView: React.FC = () => {
     }
   }
 
+  const downloadTemplateCsv = () => {
+    const csvContent = "data:text/csv;charset=utf-8,TITLE,ARTIST,URL\n"
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", "template_imports_musiques.csv")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handleCsvUpload = async (file: File) => {
+    showToast(`Fichier ${file.name} prêt pour l'import.`, "info")
+    setIsImportModalOpen(false)
+  }
+
   const getPlayerSafeTracks = () => {
     return tracks.map((t) => ({
       id: t.id,
@@ -219,7 +269,7 @@ const PlaylistView: React.FC = () => {
   }
 
   const displayCover =
-    playlist?.cover_image || (tracks.length > 0 ? tracks[0].image : null)
+    playlist?.cover_image || (playlist as any)?.first_track_cover
 
   const isCurrentPlaylistPlaying = tracks.some(
     (t) => String(t.id) === String(currentTrack?.id),
@@ -305,39 +355,52 @@ const PlaylistView: React.FC = () => {
           )}
         </button>
 
-        <button
-          onClick={handleToggleShuffle}
-          disabled={!playlist}
-          className={`p-3 rounded-full transition-all flex items-center justify-center relative ${
-            isPlaylistAleatoire
-              ? "text-[#1db954] hover:text-[#1ed760]"
-              : "text-[#b3b3b3] hover:text-white"
-          }`}
-          title={
+        <Tooltip
+          text={
             isPlaylistAleatoire
               ? "Désactiver la lecture aléatoire"
               : "Activer la lecture aléatoire"
           }
         >
-          <Shuffle size={26} />
-          {isPlaylistAleatoire && (
-            <span className="absolute bottom-1 w-1 h-1 bg-[#1db954] rounded-full"></span>
-          )}
-        </button>
+          <button
+            onClick={handleToggleShuffle}
+            disabled={!playlist}
+            className={`p-3 rounded-full transition-all flex items-center justify-center relative ${
+              isPlaylistAleatoire
+                ? "text-[#1db954] hover:text-[#1ed760]"
+                : "text-[#b3b3b3] hover:text-white"
+            }`}
+          >
+            <Shuffle size={26} />
+            {isPlaylistAleatoire && (
+              <span className="absolute bottom-1 w-1 h-1 bg-[#1db954] rounded-full"></span>
+            )}
+          </button>
+        </Tooltip>
 
         <DropdownMenu>
           <DropdownItem icon={<Pen size={16} />} onClick={handleOpenEditModal}>
             Modifier la playlist
           </DropdownItem>
+          <DropdownItem
+            icon={<Upload size={16} />}
+            onClick={() => setIsImportModalOpen(true)}
+          >
+            Importer des musiques
+          </DropdownItem>
           <DropdownDivider />
           <DropdownItem
-            icon={<Trash2 size={16} />}
-            onClick={() =>
-              showToast("Suppression de playlist bientôt disponible !", "error")
+            icon={
+              isDeletingPlaylist ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Trash2 size={16} />
+              )
             }
+            onClick={() => setIsConfirmModalOpen(true)}
             variant="danger"
           >
-            Supprimer la playlist
+            {isDeletingPlaylist ? "Suppression..." : "Supprimer la playlist"}
           </DropdownItem>
         </DropdownMenu>
       </div>
@@ -459,6 +522,14 @@ const PlaylistView: React.FC = () => {
         )}
       </main>
 
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        title="Supprimer la playlist"
+        message={`Êtes-vous sûr de vouloir supprimer la playlist "${playlist?.title}" ? Cette action est irréversible.`}
+        onConfirm={handleConfirmDeletePlaylist}
+        onClose={() => setIsConfirmModalOpen(false)}
+      />
+
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -540,6 +611,41 @@ const PlaylistView: React.FC = () => {
             )}
           </Button>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        title="Importer des musiques (.csv)"
+      >
+        <div className="w-full py-2 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/5 p-3 rounded-lg border border-white/5">
+            <div>
+              <p className="text-xs font-bold text-white">
+                Structure requise du fichier
+              </p>
+              <p className="text-[11px] text-gray-400">
+                Téléchargez le modèle contenant les en-têtes indispensables.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={downloadTemplateCsv}
+              className="flex items-center gap-2 text-xs font-bold text-[#1db954] hover:text-[#1ed760] transition-colors bg-[#1db954]/10 hover:bg-[#1db954]/20 px-3 py-1.5 rounded-full border border-[#1db954]/20 whitespace-nowrap self-stretch sm:self-auto justify-center cursor-pointer"
+            >
+              <Download size={14} />
+              Télécharger le template
+            </button>
+          </div>
+
+          <FileUploadZone
+            acceptedTypes={["text/csv", "application/vnd.ms-excel", ".csv"]}
+            maxSizeInMB={5}
+            onUpload={handleCsvUpload}
+            title="Glissez votre fichier CSV ici"
+            subtitle="Format attendu : TITLE, ARTIST, URL"
+          />
+        </div>
       </Modal>
     </div>
   )

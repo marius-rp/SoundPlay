@@ -2,6 +2,7 @@ import React from "react"
 import { Clock3, Square, Loader2, Plus } from "lucide-react"
 import { type ITrack } from "../../interface/IMusic"
 import { IconButton } from "../buttons/IconButton"
+import Tooltip from "../ui/Tooltip"
 
 interface TrackRowProps {
   track: ITrack
@@ -18,42 +19,47 @@ export const TrackRow: React.FC<TrackRowProps> = ({
   isLoadingPreview,
   onAddPlaylist,
 }) => (
-  <div className="group flex items-center gap-4 p-3 rounded-md hover:bg-white/5 transition-colors border-b border-white/5 last:border-none">
+  <div className="flex items-center gap-4 p-3 rounded-md hover:bg-white/5 transition-colors border-b border-white/5 last:border-none">
     <div className="w-8 flex items-center justify-center shrink-0">
-      <IconButton
-        icon={<Plus size={18} />}
-        onClick={(e) => {
-          e.stopPropagation()
-          onAddPlaylist(track)
-        }}
-        title="Ajouter à une playlist"
-        className="opacity-0 group-hover:opacity-100 text-white hover:text-[#1db954] hover:bg-transparent transition-opacity"
-      />
+      <Tooltip text="Ajouter à une playlist">
+        <IconButton
+          icon={<Plus size={18} />}
+          onClick={(e) => {
+            e.stopPropagation()
+            onAddPlaylist(track)
+          }}
+          className="opacity-100 text-white hover:text-[#1db954] bg-gray-700/20"
+        />
+      </Tooltip>
     </div>
 
     <div className="flex items-center gap-4 flex-1 min-w-0">
-      <img
-        src={track.image}
-        alt="cover"
-        onClick={() => onPreview(track)}
-        className="w-12 h-12 rounded-md object-cover shrink-0 shadow-md cursor-pointer hover:opacity-80 transition-opacity hover:border-4 hover:border-[#1db954]"
-      />
-
-      <div className="flex flex-col flex-1 min-w-0">
-        <h3
+      <Tooltip text="Lire un extrait">
+        <img
+          src={track.image}
+          alt="cover"
           onClick={() => onPreview(track)}
-          className={`font-semibold text-base truncate transition-colors cursor-pointer inline-block max-w-fit ${
-            isPreviewing
-              ? "text-[#1db954]"
-              : "text-white hover:text-[#1db954] hover:underline"
-          }`}
-        >
-          {track.title}
-        </h3>
-        <p className="text-gray-400 text-sm truncate cursor-default">
-          {track.artist}
-        </p>
-      </div>
+          className="w-12 h-12 rounded-md object-cover shrink-0 shadow-md cursor-pointer hover:opacity-80 transition-opacity hover:border-4 hover:border-[#1db954]"
+        />
+      </Tooltip>
+
+      <Tooltip text="Lire un extrait">
+        <div className="flex flex-col flex-1 min-w-0">
+          <h3
+            onClick={() => onPreview(track)}
+            className={`font-semibold text-base truncate transition-colors cursor-pointer inline-block max-w-fit ${
+              isPreviewing
+                ? "text-[#1db954]"
+                : "text-white hover:text-[#1db954] hover:underline"
+            }`}
+          >
+            {track.title}
+          </h3>
+          <p className="text-gray-400 text-sm truncate cursor-default">
+            {track.artist}
+          </p>
+        </div>
+      </Tooltip>
     </div>
 
     <div className="w-10 flex items-center justify-center shrink-0">

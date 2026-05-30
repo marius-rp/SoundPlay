@@ -6,6 +6,7 @@ import { type ITrack } from "../../../interface/IMusic"
 import SearchBar from "../../../components/dropdown/SearchBar"
 import Input from "../../../components/dropdown/Input"
 import ConfirmModal from "../../../components/modal/ConfirmModal"
+import Tooltip from "../../../components/ui/Tooltip"
 
 const MusicsTab: React.FC = () => {
   const { showToast } = useToast()
@@ -188,7 +189,7 @@ const MusicsTab: React.FC = () => {
                         )}
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="absolute inset-0 flex items-center justify-center text-white hover:scale-110 transition-transform"
+                          className="absolute inset-0 flex items-center justify-center text-white hover:scale-110 transition-transform cursor-pointer"
                         >
                           <Camera size={16} />
                         </button>
@@ -255,37 +256,41 @@ const MusicsTab: React.FC = () => {
                       <>
                         <button
                           onClick={() => handleSave(m.id)}
-                          className="p-1.5 text-[#1db954] hover:bg-[#1db954]/20 rounded transition-colors"
+                          className="p-1.5 text-[#1db954] hover:bg-[#1db954]/20 rounded transition-colors cursor-pointer"
                         >
                           <Check size={16} />
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="p-1.5 text-gray-400 hover:bg-white/10 rounded transition-colors"
+                          className="p-1.5 text-gray-400 hover:bg-white/10 rounded transition-colors cursor-pointer"
                         >
                           <X size={16} />
                         </button>
                       </>
                     ) : (
                       <>
-                        <button
-                          onClick={() => handleStartEdit(m)}
-                          className="p-2 text-gray-400 hover:text-white transition-colors"
-                        >
-                          <Pen size={16} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setConfirmDialog({
-                              isOpen: true,
-                              id: m.id,
-                              title: m.title,
-                            })
-                          }
-                          className="p-2 text-gray-500 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <Tooltip text="Modifier">
+                          <button
+                            onClick={() => handleStartEdit(m)}
+                            className="p-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                          >
+                            <Pen size={16} />
+                          </button>
+                        </Tooltip>
+                        <Tooltip text="Supprimer">
+                          <button
+                            onClick={() =>
+                              setConfirmDialog({
+                                isOpen: true,
+                                id: m.id,
+                                title: m.title,
+                              })
+                            }
+                            className="p-2 text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </Tooltip>
                       </>
                     )}
                   </div>

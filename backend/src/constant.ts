@@ -17,8 +17,14 @@ export const getRandomUserAgent = (): string => {
 
 export const MAX_HISTORY_LIMIT = 10
 
-export const LINK_FILES_MUSICS = 'storage/musics'
+export const LINK_FILES_MUSICS = "storage/musics"
 
-export const LINK_FILES_COVERS = 'storage/cover_playlist'
+export const LINK_FILES_COVERS = "storage/cover_playlist"
 
 export const PROXY_TEST_URL = process.env.PROXY_TEST_URL
+
+export const ROLES = {
+  USER: 1,
+  ADMIN: 2,
+  SUPERVISOR: 3,
+} as const

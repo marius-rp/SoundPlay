@@ -1,16 +1,16 @@
-import React, { useState } from "react"
-import Modal from "./Modal"
-import Input from "../dropdown/Input"
-import Button from "../buttons/Button"
-import type { IRole } from "../../interface/IRole"
-import Select from "../dropdown/Select"
+import React, { useState } from "react";
+import Modal from "./Modal";
+import Input from "../dropdown/Input";
+import Button from "../buttons/Button";
+import type { IRole } from "../../interface/IRole";
+import Select from "../dropdown/Select";
 
 interface UserFormModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onAdd: (data: any) => Promise<void>
-  roles: IRole[]
-  isLoading?: boolean
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (data: any) => Promise<void>;
+  roles: IRole[];
+  isLoading?: boolean;
 }
 
 const UserFormModal: React.FC<UserFormModalProps> = ({
@@ -26,26 +26,26 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
     email: "",
     password: "",
     role_id: 1,
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await onAdd(formData)
+    e.preventDefault();
+    await onAdd(formData);
     setFormData({
       name: "",
       surname: "",
       email: "",
       password: "",
       role_id: roles[0]?.id || 1,
-    })
-    onClose()
-  }
+    });
+    onClose();
+  };
 
   React.useEffect(() => {
     if (isOpen && roles.length > 0 && formData.role_id === 0) {
-      setFormData((prev) => ({ ...prev, role_id: roles[0].id }))
+      setFormData((prev) => ({ ...prev, role_id: roles[0].id }));
     }
-  }, [isOpen, roles])
+  }, [isOpen, roles]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Créer un Utilisateur">
@@ -119,8 +119,8 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
             </label>
             <Select
               value={formData.role_id}
-              onChange={(e) =>
-                setFormData({ ...formData, role_id: Number(e.target.value) })
+              onChange={(value: string | number) =>
+                setFormData({ ...formData, role_id: Number(value) })
               }
               options={roles.map((r) => ({
                 value: r.id,
@@ -150,7 +150,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
         </div>
       </form>
     </Modal>
-  )
-}
+  );
+};
 
-export default UserFormModal
+export default UserFormModal;

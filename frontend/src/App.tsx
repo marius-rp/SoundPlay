@@ -12,6 +12,7 @@ import { DownloadProvider } from "./context/DownloadContext"
 import Admin from "./view/admin/Admin"
 import PlaylistView from "./view/PlaylistView"
 import { PlayerProvider } from "./context/PlayerContext"
+import { ROLES } from "./constant"
 
 function App() {
   return (
@@ -72,7 +73,7 @@ function App() {
                 <Route
                   path="/Admin"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPERVISOR]}>
                       <Admin />
                     </ProtectedRoute>
                   }

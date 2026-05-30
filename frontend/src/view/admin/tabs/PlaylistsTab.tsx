@@ -14,6 +14,7 @@ import { adminPlaylistService } from "../../../service/admin/admin-playlist.serv
 import SearchBar from "../../../components/dropdown/SearchBar"
 import Input from "../../../components/dropdown/Input"
 import ConfirmModal from "../../../components/modal/ConfirmModal"
+import Tooltip from "../../../components/ui/Tooltip"
 
 const PlaylistsTab: React.FC = () => {
   const { showToast } = useToast()
@@ -166,139 +167,142 @@ const PlaylistsTab: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {filteredPlaylists.map((p) => (
-              <tr
-                key={p.id}
-                className="hover:bg-white/5 transition-colors group"
-              >
-                <td className="px-6 py-4 font-mono text-xs text-gray-500">
-                  #{p.id}
-                </td>
+            {filteredPlaylists.map((p) => {
+              return (
+                <tr
+                  key={p.id}
+                  className="hover:bg-white/5 transition-colors group"
+                >
+                  <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                    #{p.id}
+                  </td>
 
-                <td className="px-6 py-3">
-                  <div className="relative w-12 h-12 group/cover">
-                    {editingId === p.id ? (
-                      <>
-                        {(editForm.preview && editForm.preview !== "") ||
-                        (p.cover_image && p.cover_image !== "") ? (
-                          <img
-                            src={editForm.preview || p.cover_image}
-                            className="w-12 h-12 object-cover rounded shadow-lg opacity-50"
-                            alt="Aperçu"
+                  <td className="px-6 py-3">
+                    <div className="relative w-12 h-12 group/cover">
+                      {editingId === p.id ? (
+                        <>
+                          {editForm.preview || p.cover_image ? (
+                            <img
+                              src={editForm.preview || p.cover_image}
+                              className="w-12 h-12 object-cover rounded shadow-lg opacity-50"
+                              alt="Aperçu"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-[#282828] rounded flex items-center justify-center opacity-50">
+                              <Music size={16} className="text-gray-600" />
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="absolute inset-0 flex items-center justify-center text-white hover:scale-110 transition-transform cursor-pointer"
+                          >
+                            <Camera size={16} />
+                          </button>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            hidden
+                            onChange={handleImageChange}
+                            accept="image/*"
                           />
-                        ) : (
-                          <div className="w-12 h-12 bg-[#282828] rounded flex items-center justify-center opacity-50">
-                            <Music size={16} className="text-gray-600" />
-                          </div>
-                        )}
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="absolute inset-0 flex items-center justify-center text-white hover:scale-110 transition-transform"
-                        >
-                          <Camera size={16} />
-                        </button>
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          hidden
-                          onChange={handleImageChange}
-                          accept="image/*"
+                        </>
+                      ) : p.cover_image ? (
+                        <img
+                          src={p.cover_image}
+                          className="w-12 h-12 object-cover rounded shadow-md"
+                          alt="Playlist cover"
                         />
-                      </>
-                    ) :
-                    p.cover_image && p.cover_image !== "" ? (
-                      <img
-                        src={p.cover_image}
-                        className="w-12 h-12 object-cover rounded shadow-md"
-                        alt="Playlist cover"
+                      ) : (
+                        <div className="w-12 h-12 bg-[#282828] rounded flex items-center justify-center">
+                          <Music size={16} className="text-gray-600" />
+                        </div>
+                      )}
+                    </div>
+                  </td>
+
+                  <td className="px-6 py-4">
+                    {editingId === p.id ? (
+                      <Input
+                        value={editForm.title}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, title: e.target.value })
+                        }
+                        className="h-8 text-xs w-full max-w-[250px]"
                       />
                     ) : (
-                      <div className="w-12 h-12 bg-[#282828] rounded flex items-center justify-center">
-                        <Music size={16} className="text-gray-600" />
-                      </div>
+                      <span
+                        className="font-bold text-white block truncate max-w-[250px]"
+                        title={p.title}
+                      >
+                        {p.title}
+                      </span>
                     )}
-                  </div>
-                </td>
+                  </td>
 
-                <td className="px-6 py-4">
-                  {editingId === p.id ? (
-                    <Input
-                      value={editForm.title}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, title: e.target.value })
-                      }
-                      className="h-8 text-xs w-full max-w-[250px]"
-                    />
-                  ) : (
-                    <span
-                      className="font-bold text-white block truncate max-w-[250px]"
-                      title={p.title}
-                    >
-                      {p.title}
+                  <td className="px-6 py-4">
+                    <span className="block truncate max-w-[200px] text-gray-400">
+                      {p.creator_name || `Utilisateur n°${p.user_id}`}
                     </span>
-                  )}
-                </td>
+                  </td>
 
-                <td className="px-6 py-4">
-                  <span className="block truncate max-w-[200px] text-gray-400">
-                    {p.creator_name || `Utilisateur n°${p.user_id}`}
-                  </span>
-                </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <Clock size={14} className="text-gray-500" />
+                      {p.created_at
+                        ? new Date(p.created_at).toLocaleDateString("fr-FR")
+                        : "Inconnue"}
+                    </div>
+                  </td>
 
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 whitespace-nowrap">
-                    <Clock size={14} className="text-gray-500" />
-                    {p.created_at
-                      ? new Date(p.created_at).toLocaleDateString("fr-FR")
-                      : "Inconnue"}
-                  </div>
-                </td>
-
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    {editingId === p.id ? (
-                      <>
-                        <button
-                          onClick={() => handleSave(p.id)}
-                          className="p-1.5 text-[#1db954] hover:bg-[#1db954]/20 rounded transition-colors"
-                        >
-                          <Check size={18} />
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="p-1.5 text-gray-400 hover:bg-white/10 rounded transition-colors"
-                        >
-                          <X size={18} />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleStartEdit(p)}
-                          className="p-2 text-gray-400 hover:text-white transition-colors"
-                          title="Modifier"
-                        >
-                          <Pen size={16} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setConfirmDialog({
-                              isOpen: true,
-                              id: p.id,
-                              title: p.title,
-                            })
-                          }
-                          className="p-2 text-gray-500 hover:text-red-500 transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      {editingId === p.id ? (
+                        <>
+                          <button
+                            onClick={() => handleSave(p.id)}
+                            className="p-1.5 text-[#1db954] hover:bg-[#1db954]/20 rounded transition-colors cursor-pointer"
+                          >
+                            <Check size={18} />
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="p-1.5 text-gray-400 hover:bg-white/10 rounded transition-colors cursor-pointer"
+                          >
+                            <X size={18} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Tooltip text="Modifier la playlist">
+                            <button
+                              onClick={() => handleStartEdit(p)}
+                              className="p-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                            >
+                              <Pen size={16} />
+                            </button>
+                          </Tooltip>
+                          <Tooltip text="Supprimer la playlist">
+                            <button
+                              onClick={() =>
+                                setConfirmDialog({
+                                  isOpen: true,
+                                  id: p.id,
+                                  title: p.title,
+                                })
+                              }
+                              className="p-2 text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </Tooltip>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

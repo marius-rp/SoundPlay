@@ -14,6 +14,14 @@ export const playlistService = {
         SELECT 
           p.*, 
           COUNT(pt.music_id) as trackCount,
+          (
+            SELECT m.image 
+            FROM playlisttracks pt2 
+            JOIN musics m ON pt2.music_id = m.id 
+            WHERE pt2.playlist_id = p.id 
+            ORDER BY pt2.id ASC 
+            LIMIT 1
+          ) as first_track_cover,
           JSON_OBJECT('id', u.id, 'name', u.name, 'surname', u.surname) as user
         FROM playlists p
         LEFT JOIN playlisttracks pt ON p.id = pt.playlist_id
@@ -93,7 +101,11 @@ export const playlistService = {
         playlistData.title ?? null,
         playlistData.description ?? null,
         playlistData.cover_image ?? null,
-        playlistData.aleatoire !== undefined ? (playlistData.aleatoire ? 1 : 0) : null,
+        playlistData.aleatoire !== undefined
+          ? playlistData.aleatoire
+            ? 1
+            : 0
+          : null,
         playlistId,
         userId,
       ])
@@ -138,9 +150,9 @@ export const playlistService = {
     playlistData: Partial<Playlist>,
   ): Promise<ApiResponse<null>> => {
     try {
-      let aleatoireValue = undefined;
+      let aleatoireValue = undefined
       if (playlistData.aleatoire !== undefined) {
-          aleatoireValue = playlistData.aleatoire ? 1 : 0;
+        aleatoireValue = playlistData.aleatoire ? 1 : 0
       }
 
       const sql = `
@@ -171,7 +183,7 @@ export const playlistService = {
               "Playlist introuvable ou vous n'avez pas l'autorisation de la modifier.",
           },
         }
-        
+
       logger(
         userId,
         FILE_NAME,
@@ -200,24 +212,33 @@ export const playlistService = {
   deletePlaylist: async (
     playlistId: number,
     userId: number,
+    isAdmin: boolean,
   ): Promise<ApiResponse<null>> => {
     try {
-      const sql = `DELETE FROM playlists WHERE id = ? AND user_id = ?`
-      const [result]: any = await pool.query(sql, [playlistId, userId])
-      if (result.affectedRows === 0)
+      const sql = isAdmin
+        ? `DELETE FROM playlists WHERE id = ?`
+        : `DELETE FROM playlists WHERE id = ? AND user_id = ?`
+
+      const params = isAdmin ? [playlistId] : [playlistId, userId]
+
+      const [result]: any = await pool.query(sql, params)
+      if (result.affectedRows === 0) {
         return {
           success: false,
           data: null,
           error: {
             code: "NOT_FOUND_OR_UNAUTHORIZED",
-            message: "Playlist introuvable ou non autorisée.",
+            message:
+              "Playlist introuvable ou vous n'avez pas l'autorisation de la supprimer.",
           },
         }
+      }
+
       logger(
         userId,
         FILE_NAME,
-        "WARN",
-        `Playlist ${playlistId} supprimée définitivement par l'utilisateur`,
+        "INFO",
+        `Playlist ${playlistId} supprimée avec succès`,
       )
       return { success: true, data: null, error: null }
     } catch (error: any) {
@@ -232,7 +253,7 @@ export const playlistService = {
         data: null,
         error: {
           code: "DB_DELETE_ERROR",
-          message: "Impossible de supprimer la playlist.",
+          message: "Impossible de supprimer cette playlist.",
         },
       }
     }
@@ -245,13 +266,20 @@ export const playlistService = {
       const sql = `SELECT 
           p.*, 
           COUNT(pt.music_id) as trackCount,
+          (
+            SELECT m.image 
+            FROM playlisttracks pt2 
+            JOIN musics m ON pt2.music_id = m.id 
+            WHERE pt2.playlist_id = p.id 
+            ORDER BY pt2.added_at ASC 
+            LIMIT 1
+          ) as first_track_cover,
           JSON_OBJECT('id', u.id, 'name', u.name, 'surname', u.surname) as user
         FROM playlists p
         LEFT JOIN playlisttracks pt ON p.id = pt.playlist_id
         LEFT JOIN users u ON p.user_id = u.id
         WHERE p.id = ?
-        GROUP BY p.id
-        ORDER BY p.created_at DESC`
+        GROUP BY p.id`
       const [rows]: any = await pool.query(sql, [playlistId])
       if (rows.length === 0) {
         return {
@@ -285,7 +313,20 @@ export const playlistService = {
   getAllPlaylists: async (): Promise<ApiResponse<any[]>> => {
     try {
       const sql = `
-        SELECT p.*, CONCAT(u.name, ' ', u.surname) as creator_name 
+        SELECT 
+          p.*, 
+          CONCAT(u.name, ' ', u.surname) as creator_name,
+          COALESCE(
+            p.cover_image,
+            (
+              SELECT m.image 
+              FROM playlisttracks pt2 
+              JOIN musics m ON pt2.music_id = m.id 
+              WHERE pt2.playlist_id = p.id 
+              ORDER BY pt2.id ASC 
+              LIMIT 1
+            )
+          ) as cover_image
         FROM playlists p
         LEFT JOIN users u ON p.user_id = u.id
         ORDER BY p.created_at DESC

@@ -10,6 +10,7 @@ export const saveMusic = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id || "SYSTEM"
   try {
     const { id, title, artist, image, duration } = req.body
+    console.log(req.body)
 
     if (!id || !title || !artist) {
       return errorResponse(

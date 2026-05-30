@@ -16,6 +16,7 @@ import MusicsTab from "./tabs/MusicsTab"
 import PlaylistsTab from "./tabs/PlaylistsTab"
 import ProxiesTab from "./tabs/ProxiesTab"
 import LogsTab from "./tabs/LogsTab"
+import { useUser } from "../../hooks/useUser"
 
 type TabType =
   | "dashboard"
@@ -27,6 +28,7 @@ type TabType =
 
 const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard")
+  const { isAdmin } = useUser()
 
   return (
     <div className="h-full bg-[#121212] overflow-y-auto pb-32 scrollbar-hide">
@@ -44,24 +46,28 @@ const Admin: React.FC = () => {
             icon={<Activity size={16} />}
             label="Vue d'ensemble"
           />
-          <TabButton
-            active={activeTab === "users"}
-            onClick={() => setActiveTab("users")}
-            icon={<Users size={16} />}
-            label="Utilisateurs"
-          />
-          <TabButton
-            active={activeTab === "musics"}
-            onClick={() => setActiveTab("musics")}
-            icon={<Music size={16} />}
-            label="Musiques"
-          />
-          <TabButton
-            active={activeTab === "playlists"}
-            onClick={() => setActiveTab("playlists")}
-            icon={<ListMusic size={16} />}
-            label="Playlists"
-          />
+          {isAdmin && (
+            <>
+              <TabButton
+                active={activeTab === "users"}
+                onClick={() => setActiveTab("users")}
+                icon={<Users size={16} />}
+                label="Utilisateurs"
+              />
+              <TabButton
+                active={activeTab === "musics"}
+                onClick={() => setActiveTab("musics")}
+                icon={<Music size={16} />}
+                label="Musiques"
+              />
+              <TabButton
+                active={activeTab === "playlists"}
+                onClick={() => setActiveTab("playlists")}
+                icon={<ListMusic size={16} />}
+                label="Playlists"
+              />
+            </>
+          )}
           <TabButton
             active={activeTab === "proxies"}
             onClick={() => setActiveTab("proxies")}

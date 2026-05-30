@@ -20,7 +20,7 @@ dotenv.config()
 
 const FILE_NAME = "server.ts"
 const app = express()
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT
 
 app.use(
   cors({

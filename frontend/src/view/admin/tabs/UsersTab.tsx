@@ -13,6 +13,8 @@ import Button from "../../../components/buttons/Button"
 import Select from "../../../components/dropdown/Select"
 import UserFormModal from "../../../components/modal/UserFormModal"
 import ConfirmModal from "../../../components/modal/ConfirmModal"
+import { ROLES } from "../../../constant"
+import Tooltip from "../../../components/ui/Tooltip"
 
 const UsersTab: React.FC = () => {
   const { showToast } = useToast()
@@ -164,9 +166,10 @@ const UsersTab: React.FC = () => {
         />
         <Button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 whitespace-nowrap w-full sm:w-auto justify-center"
+          className="flex items-center gap-2 whitespace-nowrap w-full sm:w-auto justify-center cursor-pointer px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm"
         >
-          <Plus size={18} /> Nouvel Utilisateur
+          <Plus size={16} />
+          <span className="sm:inline">Nouvel Utilisateur</span>
         </Button>
       </div>
 
@@ -261,7 +264,7 @@ const UsersTab: React.FC = () => {
                     </div>
                   ) : (
                     <Badge
-                      variant={u.role.type === "admin" ? "red" : "blue"}
+                      variant={u.role.id === ROLES.ADMIN ? "red" : "blue"}
                       size="md"
                     >
                       {u.role.type}
@@ -274,33 +277,37 @@ const UsersTab: React.FC = () => {
                       <>
                         <button
                           onClick={() => handleUpdateUser(u.id)}
-                          className="p-1.5 bg-[#1db954]/20 text-[#1db954] rounded hover:bg-[#1db954]/30"
+                          className="p-1.5 bg-[#1db954]/20 text-[#1db954] rounded hover:bg-[#1db954]/30 cursor-pointer"
                         >
                           <Check size={16} />
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="p-1.5 bg-white/5 text-gray-400 rounded hover:bg-white/10"
+                          className="p-1.5 bg-white/5 text-gray-400 rounded hover:bg-white/10 cursor-pointer"
                         >
                           <X size={16} />
                         </button>
                       </>
                     ) : (
                       <>
-                        <button
-                          onClick={() => handleStartEdit(u)}
-                          className="p-2 text-gray-400 hover:text-white"
-                        >
-                          <Pen size={16} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDeleteUser(u.id, `${u.name} ${u.surname}`)
-                          }
-                          className="p-2 text-gray-500 hover:text-red-500"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <Tooltip text="Modifier">
+                          <button
+                            onClick={() => handleStartEdit(u)}
+                            className="p-2 text-gray-400 hover:text-white cursor-pointer"
+                          >
+                            <Pen size={16} />
+                          </button>
+                        </Tooltip>
+                        <Tooltip text="Supprimer">
+                          <button
+                            onClick={() =>
+                              handleDeleteUser(u.id, `${u.name} ${u.surname}`)
+                            }
+                            className="p-2 text-gray-500 hover:text-red-500 cursor-pointer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </Tooltip>
                       </>
                     )}
                   </div>

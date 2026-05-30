@@ -21,6 +21,7 @@ import StatCard from "../../../components/cards/StatCard"
 import Button from "../../../components/buttons/Button"
 import { IconButton } from "../../../components/buttons/IconButton"
 import { formatDateTime } from "../../../utils/date.helper"
+import Tooltip from "../../../components/ui/Tooltip"
 
 const DashboardTab: React.FC = () => {
   const { showToast } = useToast()
@@ -225,13 +226,15 @@ const DashboardTab: React.FC = () => {
                     NodeCache • Mémoire vive
                   </span>
                 </div>
-                <button
-                  onClick={handleClearCache}
-                  disabled={isLoadingAction}
-                  className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <Tooltip text="Supprimer le cache des recherches">
+                  <button
+                    onClick={handleClearCache}
+                    disabled={isLoadingAction}
+                    className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all cursor-pointer"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </Tooltip>
               </div>
               <div className="flex items-center justify-between bg-black/40 p-3 rounded-lg hover:border-white/10 border border-transparent transition-colors">
                 <div>
@@ -242,13 +245,15 @@ const DashboardTab: React.FC = () => {
                     Stockage physique • .m4a / .mp3
                   </span>
                 </div>
-                <button
-                  onClick={handleClearPreviews}
-                  disabled={isLoadingAction}
-                  className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <Tooltip text="Suppression des fichiers temporaires">
+                  <button
+                    onClick={handleClearPreviews}
+                    disabled={isLoadingAction}
+                    className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all cursor-pointer"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -287,17 +292,19 @@ const DashboardTab: React.FC = () => {
                       }))
                     }
                   />
-                  <IconButton
-                    icon={<Save size={14} />}
-                    onClick={() =>
-                      handleUpdateDownloadSetting(
-                        setting.fileName,
-                        editedUrls[setting.fileName] ?? setting.url,
-                      )
-                    }
-                    disabled={isLoadingAction}
-                    className="text-gray-500 hover:text-blue-500"
-                  />
+                  <Tooltip text="Enregistrer la source de téléchargement">
+                    <IconButton
+                      icon={<Save size={14} />}
+                      onClick={() =>
+                        handleUpdateDownloadSetting(
+                          setting.fileName,
+                          editedUrls[setting.fileName] ?? setting.url,
+                        )
+                      }
+                      disabled={isLoadingAction}
+                      className="text-gray-500 hover:text-blue-500"
+                    />
+                  </Tooltip>
                 </div>
               ))}
             </div>
@@ -316,16 +323,21 @@ const DashboardTab: React.FC = () => {
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
               />
-              <IconButton
-                icon={<Plus size={14} />}
-                onClick={() => {
-                  handleUpdateDownloadSetting(newFileName.trim(), newUrl.trim())
-                  setNewFileName("")
-                  setNewUrl("")
-                }}
-                disabled={isLoadingAction || !newFileName || !newUrl}
-                className="text-blue-500 hover:bg-blue-500/10"
-              />
+              <Tooltip text="Ajouter une nouvelle source de téléchargement">
+                <IconButton
+                  icon={<Plus size={14} />}
+                  onClick={() => {
+                    handleUpdateDownloadSetting(
+                      newFileName.trim(),
+                      newUrl.trim(),
+                    )
+                    setNewFileName("")
+                    setNewUrl("")
+                  }}
+                  disabled={isLoadingAction || !newFileName || !newUrl}
+                  className="text-blue-500 hover:bg-blue-500/10"
+                />
+              </Tooltip>
             </div>
           </div>
           <Button

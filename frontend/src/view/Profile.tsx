@@ -19,6 +19,7 @@ import {
   DropdownItem,
   DropdownDivider,
 } from "../components/dropdown/DropdownMenu"
+import { ROLES } from "../constant"
 
 const Profile: React.FC = () => {
   const { user, fullName, clearUser } = useUser()
@@ -105,7 +106,7 @@ const Profile: React.FC = () => {
               </span>
               <span className="w-1 h-1 bg-white rounded-full"></span>
               <span className="text-gray-300">
-                Compte {user?.role?.id === 2 ? "Admin" : "Standard"}
+                Compte {user?.role?.id === ROLES.ADMIN ? "Admin" : "Standard"}
               </span>
             </div>
           </div>
@@ -169,7 +170,7 @@ const Profile: React.FC = () => {
               <span className="font-bold text-sm text-white">Rôle</span>
             </div>
             <span className="text-gray-400 group-hover:text-white col-span-1 md:col-span-2">
-              {user?.role?.id === 2 ? "Administrateur" : "Utilisateur Standard"}
+              {user?.role?.id === ROLES.ADMIN ? "Administrateur" : "Utilisateur Standard"}
             </span>
           </div>
 

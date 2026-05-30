@@ -34,4 +34,39 @@ export const adminProxyService = {
       is_active: isActive,
     })
   },
+
+  uploadProxyCsv: async (
+    file: File,
+  ): Promise<ApiResponse<{ total: number; added: number; failed: number }>> => {
+    const formData = new FormData()
+    formData.append("file", file)
+
+    return apiRequest.post<{ total: number; added: number; failed: number }>(
+      "admin/proxy/uploadProxyCsv",
+      formData,
+    )
+  },
+
+  testAllProxies: async (): Promise<
+    ApiResponse<{
+      total: number
+      online: number
+      offline: number
+      rateLimited: number
+    }>
+  > => {
+    return apiRequest.post<{
+      total: number
+      online: number
+      offline: number
+      rateLimited: number
+    }>("admin/proxy/testAllProxies", {})
+  },
+
+  updateProxy: async (
+    id: number,
+    proxyData: Partial<IProxy>,
+  ): Promise<ApiResponse<null>> => {
+    return apiRequest.put<null>(`admin/proxy/updateProxy/${id}`, proxyData)
+  },
 }

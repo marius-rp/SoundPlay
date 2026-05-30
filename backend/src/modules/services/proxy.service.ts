@@ -5,6 +5,7 @@ import fetch, { RequestInit } from "node-fetch"
 import { cryptoHelper } from "../../utils/crypto.helper"
 import { logger } from "../../utils/logger.helper"
 import { PROXY_TEST_URL } from "../../constant"
+import { proxyManager } from "../../utils/proxyManager.helper"
 
 const FILE_NAME = "proxy.service.ts"
 
@@ -274,6 +275,183 @@ export const proxyService = {
         error: {
           code: "DB_UPDATE_ERROR",
           message: "Impossible de modifier le statut du proxy.",
+        },
+      }
+    }
+  },
+
+  addBulkProxies: async (
+    proxies: IProxyInput[],
+  ): Promise<ApiResponse<{ total: number; added: number; failed: number }>> => {
+    try {
+      let added = 0
+      let failed = 0
+
+      for (const proxy of proxies) {
+        const res = await proxyService.addProxy(proxy)
+        if (res.success) {
+          added++
+        } else {
+          failed++
+        }
+      }
+
+      return {
+        success: true,
+        data: { total: proxies.length, added, failed },
+        error: null,
+      }
+    } catch (error: any) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "ERROR",
+        `Erreur addBulkProxies: ${error.message}`,
+      )
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: "DB_BULK_INSERT_ERROR",
+          message: "Échec de l'importation de masse en base de données.",
+        },
+      }
+    }
+  },
+
+  testAllProxies: async (): Promise<
+    ApiResponse<{
+      total: number
+      online: number
+      offline: number
+      rateLimited: number
+    }>
+  > => {
+    try {
+      const [proxies]: any = await pool.query(
+        "SELECT id FROM proxies WHERE is_active = 1",
+      )
+
+      if (proxies.length === 0) {
+        return {
+          success: true,
+          data: { total: 0, online: 0, offline: 0, rateLimited: 0 },
+          error: null,
+        }
+      }
+
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "INFO",
+        `Lancement d'un test global pour ${proxies.length} proxys.`,
+      )
+
+      let online = 0
+      let offline = 0
+      let rateLimited = 0
+
+      for (const p of proxies) {
+        const res = await proxyService.testProxy(p.id)
+        if (res.status === "online") online++
+        else if (res.status === "rate-limited") rateLimited++
+        else offline++
+      }
+
+      if (online > 0) {
+        await proxyManager.refreshProxies()
+      }
+
+      return {
+        success: true,
+        data: {
+          total: proxies.length,
+          online,
+          offline,
+          rateLimited,
+        },
+        error: null,
+      }
+    } catch (error: any) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "ERROR",
+        `Erreur testAllProxies: ${error.message}`,
+      )
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: "BULK_TEST_ERROR",
+          message:
+            "Impossible d'exécuter le diagnostic de masse sur les proxys.",
+        },
+      }
+    }
+  },
+
+  updateProxy: async (
+    id: number,
+    proxy: Partial<IProxyInput>,
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const [rows]: any = await pool.query(
+        "SELECT password FROM proxies WHERE id = ?",
+        [id],
+      )
+      if (rows.length === 0) {
+        return {
+          success: false,
+          data: null,
+          error: { code: "NOT_FOUND", message: "Proxy introuvable." },
+        }
+      }
+
+      let securedPassword = rows[0].password
+      if (proxy.password && proxy.password.trim() !== "") {
+        securedPassword = cryptoHelper.encrypt(proxy.password)
+      }
+
+      const sql = `
+        UPDATE proxies 
+        SET name = ?, host = ?, port = ?, protocol = ?, username = ?, password = ?, provider_url = ?
+        WHERE id = ?
+      `
+
+      const params = [
+        proxy.name,
+        proxy.host,
+        proxy.port,
+        proxy.protocol || "http",
+        proxy.username || null,
+        securedPassword,
+        proxy.provider_url || null,
+        id,
+      ]
+
+      await pool.query(sql, params)
+
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "INFO",
+        `Proxy ID ${id} mis à jour avec succès.`,
+      )
+      return { success: true, data: null, error: null }
+    } catch (error: any) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "ERROR",
+        `Erreur updateProxy (${id}): ${error.message}`,
+      )
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: "DB_UPDATE_ERROR",
+          message: "Impossible de modifier le proxy.",
         },
       }
     }

@@ -60,7 +60,7 @@ export const signIn = async (req: Request, res: Response) => {
 
     const user = await userService.getByEmail(email)
 
-    if (!user || !(await argon2.verify(user.password!, password))) {
+    if (!user || !(await argon2.verify(user.password!, password)) || !user.role) {
       logger(
         "SYSTEM",
         FILE_NAME,
@@ -71,7 +71,7 @@ export const signIn = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, name: user.name, surname: user.surname, role_id: user?.role.id },
       process.env.JWT_SECRET as string,
       { expiresIn: "24h" },
     )

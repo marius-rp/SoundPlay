@@ -13,6 +13,7 @@ import Modal from "../components/modal/Modal"
 import SearchBar from "../components/dropdown/SearchBar"
 import { useDownload } from "../context/DownloadContext"
 import { useToast } from "../context/ToastContext"
+import { Music } from "lucide-react"
 
 const Search: React.FC = () => {
   const { showToast } = useToast()
@@ -305,17 +306,23 @@ const Search: React.FC = () => {
               <button
                 key={playlist.id}
                 onClick={() => handleSelectPlaylist(playlist.id)}
-                className="flex items-center gap-4 w-full p-3 bg-[#2a2a2a] hover:bg-[#333] rounded-md transition-colors text-left group"
+                className="flex items-center gap-4 w-full p-3 bg-[#2a2a2a] hover:bg-[#333] rounded-md transition-colors text-left group cursor-pointer"
               >
                 <div className="w-12 h-12 bg-[#181818] rounded shrink-0 overflow-hidden flex items-center justify-center">
-                  {playlist.cover_image ? (
+                  {playlist.cover_image ||
+                  (playlist as any).first_track_cover ? (
                     <img
-                      src={playlist.cover_image}
-                      alt="cover"
+                      src={
+                        playlist.cover_image ||
+                        (playlist as any).first_track_cover
+                      }
+                      alt={playlist.title}
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-[#282828]" />
+                    <div className="w-full h-full bg-[#282828] flex items-center justify-center">
+                      <Music size={20} className="text-[#7f7f7f]" />
+                    </div>
                   )}
                 </div>
                 <span className="flex-1 text-white font-medium truncate group-hover:text-[#1db954] transition-colors">

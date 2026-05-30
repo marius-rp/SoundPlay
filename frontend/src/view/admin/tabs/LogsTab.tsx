@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react"
 import { Terminal, RefreshCw, AlertCircle, Loader2 } from "lucide-react"
 import { adminSystemService } from "../../../service/admin/admin-system.service"
+import Tooltip from "../../../components/ui/Tooltip"
 
 const AdminLogs: React.FC = () => {
   const [logs, setLogs] = useState<string>("")
@@ -45,8 +46,8 @@ const AdminLogs: React.FC = () => {
   }
 
   return (
-    <div className="bg-[#181818] rounded-xl border border-white/5 overflow-hidden flex flex-col h-125">
-      <div className="bg-[#282828] px-4 py-3 border-b border-white/5 flex justify-between items-center">
+    <div className="bg-[#181818] rounded-xl border border-white/5 overflow-hidden flex flex-col w-full h-[350px] sm:h-[450px] md:h-[550px] xl:h-[700px] max-h-[60vh]">
+      <div className="bg-[#282828] px-4 py-3 border-b border-white/5 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-2 text-white font-bold text-sm">
           <Terminal size={18} className="text-[#1db954]" />
           Journaux du serveur (server.log)
@@ -55,14 +56,18 @@ const AdminLogs: React.FC = () => {
           {isLoading && (
             <Loader2 size={16} className="animate-spin text-gray-400" />
           )}
-          <button
-            onClick={fetchLogs}
-            disabled={isLoading}
-            className="p-1.5 hover:bg-white/10 rounded-md transition-colors text-gray-400 hover:text-white disabled:opacity-50"
-            title="Rafraîchir les logs"
-          >
-            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
-          </button>
+          <Tooltip text="Rafraîchir les logs">
+            <button
+              onClick={fetchLogs}
+              disabled={isLoading}
+              className="p-1.5 hover:bg-white/10 rounded-md transition-colors text-gray-400 hover:text-white disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw
+                size={16}
+                className={isLoading ? "animate-spin" : ""}
+              />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -89,9 +94,9 @@ const AdminLogs: React.FC = () => {
                   className={`${styleClass} whitespace-pre-wrap border-b border-white/2 py-0.5 hover:bg-white/5 transition-colors flex items-start`}
                 >
                   {isError && (
-                    <span className="inline-block min-w-1 h-4 bg-red-500 mr-3 mt-0.5 rounded-full" />
+                    <span className="inline-block min-w-1 h-4 bg-red-500 mr-3 mt-0.5 rounded-full shrink-0" />
                   )}
-                  <span className="flex-1">{line}</span>
+                  <span className="flex-1 break-all">{line}</span>
                 </div>
               )
             })}
@@ -104,7 +109,7 @@ const AdminLogs: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-[#181818] px-4 py-2 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-500">
+      <div className="bg-[#181818] px-4 py-2 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-500 shrink-0">
         <span>Format: [DATE] [LEVEL] [USER] [SOURCE]</span>
         <span>Rafraîchissement manuel</span>
       </div>

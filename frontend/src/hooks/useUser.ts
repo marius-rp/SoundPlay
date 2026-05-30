@@ -1,3 +1,4 @@
+import { ROLES } from "../constant"
 import { useUserStore } from "../store/useUserStore"
 
 export const useUser = () => {
@@ -7,7 +8,12 @@ export const useUser = () => {
 
   const isAuthenticated = !!user
   const fullName = user ? `${user.name} ${user.surname}` : "Invité"
-  const isAdmin = user?.role?.id === 2
+
+  const currentRoleId = user?.role_id || user?.role?.id
+
+  const isAdmin = currentRoleId === ROLES.ADMIN
+  const isSupervisor = currentRoleId === ROLES.SUPERVISOR || currentRoleId === ROLES.ADMIN
+  const isRegularUser = currentRoleId === ROLES.USER
 
   return {
     user,
@@ -16,5 +22,7 @@ export const useUser = () => {
     isAuthenticated,
     fullName,
     isAdmin,
+    isSupervisor,
+    isRegularUser,
   }
 }

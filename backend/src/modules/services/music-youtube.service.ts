@@ -105,16 +105,30 @@ export const musicYoutubeService = {
           artist: v.author.name.replace(/ - topic$/g, ""),
           image: v.image || v.thumbnail || "",
           duration: v.timestamp,
+          views: v.views || 0,
           rank: rank,
           quality: qualityBonus,
         }
       })
 
-      const finalTracks = scoredTracks
-        .filter((t: any) => t.rank < 7)
+      let tracksToProcess = scoredTracks.filter((t: any) => t.rank < 7)
+
+      if (tracksToProcess.length === 0 && scoredTracks.length > 0) {
+        logger(
+          userId,
+          FILE_NAME,
+          "INFO",
+          `Aucun résultat strict (rank < 7) pour "${userQuery}". Utilisation des résultats larges.`,
+        )
+        tracksToProcess = scoredTracks
+      }
+
+      const finalTracks = tracksToProcess
         .sort((a: any, b: any) => {
           if (a.rank !== b.rank) return a.rank - b.rank
-          return b.quality - a.quality
+          if (a.rank === 7) return b.views - a.views
+          if (a.quality !== b.quality) return b.quality - a.quality
+          return b.views - a.views
         })
         .slice(0, 15)
         .map(({ rank, quality, ...rest }: any) => rest)

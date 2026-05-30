@@ -23,7 +23,7 @@ import { usePlayer } from "../../context/PlayerContext"
 const Layout: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { fullName } = useUser()
+  const { fullName, isSupervisor, isAdmin } = useUser()
   const { logoutUser } = useAuth()
 
   const { activeDownloads, cancelDownload } = useDownload()
@@ -146,15 +146,17 @@ const Layout: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-8 space-y-4">
-            <div
-              onClick={() => navigate("/Admin")}
-              className="flex items-center space-x-4 text-gray-400 hover:text-white cursor-pointer transition group"
-            >
-              <ShieldUser size={24} />
-              <span className="font-bold">Administration</span>
+          {(isSupervisor || isAdmin) && (
+            <div className="pt-8 space-y-4">
+              <div
+                onClick={() => navigate("/Admin")}
+                className="flex items-center space-x-4 text-gray-400 hover:text-white cursor-pointer transition group"
+              >
+                <ShieldUser size={24} />
+                <span className="font-bold">Administration</span>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mt-auto pt-6 border-t border-white/5 flex flex-col gap-4">
             {activeDownloads.length > 0 && (
