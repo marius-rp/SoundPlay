@@ -210,4 +210,61 @@ export const musicService = {
       }
     }
   },
+
+  cleanOrphanedMusics: async (): Promise<
+    ApiResponse<{ deletedCount: number }>
+  > => {
+    try {
+      const sql = `SELECT id FROM musics WHERE id NOT IN (SELECT music_id FROM playlisttracks)`
+      const [orphans]: any = await pool.query(sql)
+
+      if (orphans.length === 0) {
+        return { success: true, data: { deletedCount: 0 }, error: null }
+      }
+
+      const idsToDelete: string[] = orphans.map((m: any) => m.id)
+
+      for (const musicId of idsToDelete) {
+        const storageFilePath = path.join(STORAGE_PATH, `${musicId}.mp3`)
+        const previewPathMp3 = path.join(PREVIEW_CACHE_PATH, `${musicId}.mp3`)
+        const previewPathM4a = path.join(PREVIEW_CACHE_PATH, `${musicId}.m4a`)
+
+        if (fs.existsSync(storageFilePath)) fs.unlinkSync(storageFilePath)
+        if (fs.existsSync(previewPathMp3)) fs.unlinkSync(previewPathMp3)
+        if (fs.existsSync(previewPathM4a)) fs.unlinkSync(previewPathM4a)
+      }
+
+      const placeholders = idsToDelete.map(() => "?").join(",")
+      const deleteSql = `DELETE FROM musics WHERE id IN (${placeholders})`
+      await pool.query(deleteSql, idsToDelete)
+
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "INFO",
+        `${idsToDelete.length} musiques orphelines supprimées (BDD + Fichiers)`,
+      )
+
+      return {
+        success: true,
+        data: { deletedCount: idsToDelete.length },
+        error: null,
+      }
+    } catch (error: any) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "ERROR",
+        `Erreur cleanOrphanedMusics: ${error.message}`,
+      )
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: "CLEANUP_ERROR",
+          message: "Impossible de nettoyer les musiques orphelines.",
+        },
+      }
+    }
+  },
 }

@@ -3,6 +3,8 @@ import { playlistService } from "../services/playlist.service"
 import { successResponse, errorResponse } from "../../utils/ApiResponse.helper"
 import { logger } from "../../utils/logger.helper"
 import { ROLES } from "../../constant"
+import path from "path"
+import fs from "fs"
 
 const FILE_NAME = "playlist.controller.ts"
 
@@ -137,7 +139,6 @@ export const updatePlaylist = async (req: Request, res: Response) => {
 
 export const deletePlaylist = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id || "SYSTEM"
-  console.log((req as any).user)
   const userRoleId = (req as any).user?.role_id
   const isAdmin = userRoleId === ROLES.ADMIN
 
@@ -261,5 +262,131 @@ export const updateAleatoirePlaylist = async (req: Request, res: Response) => {
   } catch (error: any) {
     logger(userId, FILE_NAME, "ERROR", error)
     return errorResponse(res, 500, "Erreur interne du serveur.")
+  }
+}
+
+export const importCsvToPlaylist = async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id || "SYSTEM"
+  const playlistId = req.params.id
+
+  try {
+    if (!userId || userId === "SYSTEM") {
+      return errorResponse(res, 401, "Utilisateur non authentifié.")
+    }
+
+    if (!req.file) {
+      return errorResponse(res, 400, "Aucun fichier CSV fourni.")
+    }
+
+    const fileContent = req.file.buffer.toString("utf-8")
+    const lines = fileContent
+      .split(/\r?\n/)
+      .filter((line) => line.trim() !== "")
+
+    if (lines.length < 2) {
+      return errorResponse(
+        res,
+        400,
+        "Le fichier CSV est vide ou ne contient que des en-têtes.",
+      )
+    }
+
+    const headerLine = lines[0]
+    const separator = headerLine.includes(";") ? ";" : ","
+
+    const headers = headerLine
+      .split(separator)
+      .map((h) => h.replace(/^"|"$/g, "").trim().toLowerCase())
+
+    const titleIdx = headers.findIndex((h) => h === "title" || h === "titre")
+    const artistIdx = headers.findIndex(
+      (h) => h === "artist_name" || h === "artist" || h === "artiste",
+    )
+    const durationIdx = headers.findIndex(
+      (h) => h === "duration" || h === "durée",
+    )
+
+    if (titleIdx === -1 || artistIdx === -1) {
+      return errorResponse(
+        res,
+        400,
+        "Le fichier CSV doit contenir au moins les colonnes 'title' et 'artist_name'.",
+      )
+    }
+
+    const splitRegex = new RegExp(`${separator}(?=(?:(?:[^"]*"){2})*[^"]*$)`)
+
+    const tracks = lines
+      .slice(1)
+      .map((line, index) => {
+        const columns = line
+          .split(splitRegex)
+          .map((col) => col.replace(/^"|"$/g, "").trim())
+
+        let durationValue = null
+        if (durationIdx !== -1 && columns[durationIdx]) {
+          const parsedDuration = parseInt(columns[durationIdx], 10)
+          if (!isNaN(parsedDuration)) durationValue = parsedDuration
+        }
+
+        return {
+          id: `temp_${index}`,
+          title: columns[titleIdx] || "",
+          artist: columns[artistIdx] || "",
+          duration: durationValue,
+          status: "pending",
+        }
+      })
+      .filter((track) => track.title !== "" && track.artist !== "")
+
+    const timestamp = Date.now()
+    const sessionFileName = `${userId}_${playlistId}_${timestamp}.json`
+
+    const dir = path.join(process.cwd(), "cache_previews")
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+
+    const filePath = path.join(dir, sessionFileName)
+
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify(
+        {
+          sessionId: sessionFileName,
+          playlistId,
+          totalTracks: tracks.length,
+          queue: tracks,
+        },
+        null,
+        2,
+      ),
+    )
+
+    logger(
+      userId,
+      FILE_NAME,
+      "INFO",
+      `Session CSV import créée: ${sessionFileName} avec ${tracks.length} titres`,
+    )
+
+    return successResponse(res, 200, {
+      message: "Fichier CSV analysé et mis en file d'attente avec succès.",
+      sessionId: sessionFileName,
+      totalTracks: tracks.length,
+      queue: tracks,
+    })
+  } catch (error: any) {
+    logger(
+      userId,
+      FILE_NAME,
+      "ERROR",
+      `Erreur importCsvToPlaylist: ${error.message || error}`,
+    )
+    return errorResponse(
+      res,
+      500,
+      "Erreur interne lors du traitement du fichier CSV.",
+    )
   }
 }

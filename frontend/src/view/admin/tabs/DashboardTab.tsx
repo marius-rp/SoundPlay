@@ -22,6 +22,7 @@ import Button from "../../../components/buttons/Button"
 import { IconButton } from "../../../components/buttons/IconButton"
 import { formatDateTime } from "../../../utils/date.helper"
 import Tooltip from "../../../components/ui/Tooltip"
+import { adminMusicService } from "../../../service/admin/admin-music.service"
 
 const DashboardTab: React.FC = () => {
   const { showToast } = useToast()
@@ -38,24 +39,25 @@ const DashboardTab: React.FC = () => {
   const [editedUrls, setEditedUrls] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
-    const loadData = async () => {
-      setIsFetching(true)
-      try {
-        const [resStats, resSettings] = await Promise.all([
-          adminSystemService.getAllStats(),
-          adminSystemService.getDownloadSettings(),
-        ])
-        if (resStats.success && resStats.data) setStats(resStats.data)
-        if (resSettings.success && resSettings.data)
-          setDownloadSettings(resSettings.data)
-      } catch (error) {
-        showToast("Erreur lors du chargement.", "error")
-      } finally {
-        setIsFetching(false)
-      }
-    }
     loadData()
   }, [])
+
+  const loadData = async () => {
+    setIsFetching(true)
+    try {
+      const [resStats, resSettings] = await Promise.all([
+        adminSystemService.getAllStats(),
+        adminSystemService.getDownloadSettings(),
+      ])
+      if (resStats.success && resStats.data) setStats(resStats.data)
+      if (resSettings.success && resSettings.data)
+        setDownloadSettings(resSettings.data)
+    } catch (error) {
+      showToast("Erreur lors du chargement.", "error")
+    } finally {
+      setIsFetching(false)
+    }
+  }
 
   const handleUpdateYtdlp = async () => {
     setIsLoadingAction(true)
@@ -111,6 +113,26 @@ const DashboardTab: React.FC = () => {
       } else showToast("Erreur de sauvegarde.", "error")
     } catch (error) {
       showToast("Erreur réseau.", "error")
+    } finally {
+      setIsLoadingAction(false)
+    }
+  }
+
+  const handleCleanOrphaned = async () => {
+    setIsLoadingAction(true)
+    try {
+      const res = await adminMusicService.cleanOrphanedMusics()
+      if (res.success) {
+        showToast(
+          `Nettoyage réussi : ${res.data?.deletedCount} musiques supprimées.`,
+          "success",
+        )
+        loadData()
+      } else {
+        showToast(res.error?.message || "Erreur lors du nettoyage.", "error")
+      }
+    } catch (error) {
+      showToast("Erreur lors de l'appel au service de nettoyage.", "error")
     } finally {
       setIsLoadingAction(false)
     }
@@ -248,6 +270,25 @@ const DashboardTab: React.FC = () => {
                 <Tooltip text="Suppression des fichiers temporaires">
                   <button
                     onClick={handleClearPreviews}
+                    disabled={isLoadingAction}
+                    className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all cursor-pointer"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </Tooltip>
+              </div>
+              <div className="flex items-center justify-between bg-black/40 p-3 rounded-lg hover:border-white/10 border border-transparent transition-colors">
+                <div>
+                  <span className="text-sm font-medium text-white block">
+                    Musiques orphelines
+                  </span>
+                  <span className="text-[10px] text-gray-500 uppercase tracking-tight">
+                    BDD + Stockage • Nettoyage profond
+                  </span>
+                </div>
+                <Tooltip text="Supprimer les musiques sans playlist">
+                  <button
+                    onClick={handleCleanOrphaned}
                     disabled={isLoadingAction}
                     className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all cursor-pointer"
                   >

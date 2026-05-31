@@ -10,7 +10,7 @@ import Search from "./view/Search"
 import Library from "./view/Library"
 import { DownloadProvider } from "./context/DownloadContext"
 import Admin from "./view/admin/Admin"
-import PlaylistView from "./view/PlaylistView"
+import PlaylistView from "./view/playlist/PlaylistView"
 import { PlayerProvider } from "./context/PlayerContext"
 import { ROLES } from "./constant"
 

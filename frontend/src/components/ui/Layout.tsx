@@ -75,21 +75,21 @@ const Layout: React.FC = () => {
                     {index === 0 && (
                       <span className="text-[#1db954] text-[9px] mt-0.5 font-semibold">
                         Ajout en cours...
-                      </span>
+                    </span>
                     )}
                   </div>
 
                   {index > 0 && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        cancelDownload(dl.id)
-                      }}
-                      className="text-gray-500 hover:text-red-500 transition-colors p-1"
-                      title="Annuler"
-                    >
-                      <XIcon size={16} />
-                    </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      cancelDownload(dl.id)
+                    }}
+                    className="text-gray-500 hover:text-red-500 transition-colors p-1"
+                    title="Annuler"
+                  >
+                    <XIcon size={16} />
+                  </button>
                   )}
                 </div>
               ))}
@@ -199,21 +199,21 @@ const Layout: React.FC = () => {
                           {index === 0 && (
                             <span className="text-[#1db954] text-[9px] mt-0.5 font-semibold">
                               Ajout en cours...
-                            </span>
+                          </span>
                           )}
                         </div>
 
                         {index > 0 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              cancelDownload(dl.id)
-                            }}
-                            className="text-gray-500 hover:text-red-500 transition-colors p-1"
-                            title="Annuler"
-                          >
-                            <XIcon size={14} />
-                          </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            cancelDownload(dl.id)
+                          }}
+                          className="text-gray-500 hover:text-red-500 transition-colors p-1"
+                          title="Annuler"
+                        >
+                          <XIcon size={14} />
+                        </button>
                         )}
                       </div>
                     ))}

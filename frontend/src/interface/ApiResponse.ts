@@ -6,3 +6,9 @@ export interface ApiResponse<T> {
     message: string
   } | null
 }
+
+export interface IImportCsvResponse {
+  sessionId: string
+  totalTracks: number
+  queue: any[]
+}

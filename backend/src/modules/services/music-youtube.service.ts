@@ -267,7 +267,7 @@ export const musicYoutubeService = {
     return new Promise(async (resolve, reject) => {
       try {
         const randomUA = getRandomUserAgent()
-        
+
         const cmd = `/app/yt-dlp \
           --limit-rate 1M \
           --no-part \

@@ -10,8 +10,6 @@ import { authMiddleware } from "../middlewares/auth.middleware"
 
 const router = Router()
 
-router.use(authMiddleware)
-
 const searchLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
@@ -20,7 +18,7 @@ const searchLimiter = rateLimit({
 
 const downloadLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 5,
+  max: 65,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -42,6 +40,8 @@ const previewLimiter = rateLimit({
     },
   },
 })
+
+router.use(authMiddleware)
 
 router.get("/search", searchLimiter, searchMusic)
 router.get("/download/:id", downloadLimiter, downloadMusic)

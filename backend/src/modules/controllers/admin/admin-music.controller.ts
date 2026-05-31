@@ -102,3 +102,44 @@ export const deleteMusic = async (req: Request, res: Response) => {
     return errorResponse(res, 500, "Erreur interne")
   }
 }
+
+export const cleanOrphanedMusics = async (req: Request, res: Response) => {
+  const adminId = (req as any).user?.id || "SYSTEM"
+
+  try {
+    const result = await musicService.cleanOrphanedMusics()
+
+    if (!result.success) {
+      logger(
+        adminId,
+        FILE_NAME,
+        "WARN",
+        `Échec du nettoyage des musiques orphelines: ${result.error?.message}`,
+      )
+      return errorResponse(
+        res,
+        500,
+        result.error?.message || "Erreur lors du nettoyage.",
+      )
+    }
+
+    logger(
+      adminId,
+      FILE_NAME,
+      "INFO",
+      `Nettoyage déclenché par admin : ${result.data?.deletedCount} musiques supprimées.`,
+    )
+
+    return successResponse(res, 200, {
+      message: "Nettoyage des musiques orphelines effectué avec succès.",
+      deletedCount: result.data?.deletedCount,
+    })
+  } catch (error: any) {
+    logger(adminId, FILE_NAME, "ERROR", error)
+    return errorResponse(
+      res,
+      500,
+      "Erreur interne du serveur lors du nettoyage.",
+    )
+  }
+}

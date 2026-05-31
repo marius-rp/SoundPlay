@@ -1,6 +1,6 @@
 import { apiRequest } from "./APIRequest"
 import { API_URL } from "../constant"
-import type { ApiResponse } from "../interface/ApiResponse"
+import type { ApiResponse, IImportCsvResponse } from "../interface/ApiResponse"
 import type { IPlaylist, IPlaylistPayload } from "../interface/IPlaylist"
 import { formatPlaylistImage } from "../utils/request.helper"
 
@@ -59,5 +59,18 @@ export const playlistService = {
 
   deletePlaylist: async (id: number): Promise<ApiResponse<null>> => {
     return apiRequest.delete<null>(`playlist/delete/${id}`)
+  },
+
+  importCsvToPlaylist: async (
+    playlistId: number | string,
+    file: File,
+  ): Promise<ApiResponse<IImportCsvResponse>> => {
+    const formData = new FormData()
+    formData.append("file", file)
+
+    return apiRequest.post<IImportCsvResponse>(
+      `playlist/${playlistId}/import-csv`,
+      formData
+    )
   },
 }

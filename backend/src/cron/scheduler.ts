@@ -1,6 +1,7 @@
 import { proxyManager } from "../utils/proxyManager.helper"
 import { logger } from "../utils/logger.helper"
 import { systemService } from "../modules/services/system.service"
+import { musicService } from "../modules/services/music.service"
 
 const FILE_NAME = "scheduler.ts"
 
@@ -51,6 +52,25 @@ export const initSchedulers = () => {
         FILE_NAME,
         "ERROR",
         "Erreur lors de la mise à jour des binaires: " + error.message,
+      )
+    }
+  })
+
+  runEveryXHours(24, async () => {
+    logger(
+      "SYSTEM",
+      FILE_NAME,
+      "LOG",
+      "TÂCHE AUTO : Nettoyage des musiques orphelines",
+    )
+    const result = await musicService.cleanOrphanedMusics()
+
+    if (result.success) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "INFO",
+        `Nettoyage auto terminé : ${result.data?.deletedCount} musiques supprimées.`,
       )
     }
   })

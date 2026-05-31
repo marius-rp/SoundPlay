@@ -14,24 +14,25 @@ import {
   Upload,
   Download,
 } from "lucide-react"
-import { playlistTrackService } from "../service/playlistTrackService"
-import { playlistService } from "../service/playlistService"
-import { useToast } from "../context/ToastContext"
-import type { IPlaylistTrack } from "../interface/playlistTrack"
-import type { IPlaylist } from "../interface/IPlaylist"
-import { formatDuration } from "../utils/date.helper"
-import { usePlayer, type IPlayerTrack } from "../context/PlayerContext"
+import { playlistTrackService } from "../../service/playlistTrackService"
+import { playlistService } from "../../service/playlistService"
+import { useToast } from "../../context/ToastContext"
+import type { IPlaylistTrack } from "../../interface/playlistTrack"
+import type { IPlaylist } from "../../interface/IPlaylist"
+import { formatDuration } from "../../utils/date.helper"
+import { usePlayer, type IPlayerTrack } from "../../context/PlayerContext"
 import {
   DropdownMenu,
   DropdownItem,
   DropdownDivider,
-} from "../components/dropdown/DropdownMenu"
-import Modal from "../components/modal/Modal"
-import ConfirmModal from "../components/modal/ConfirmModal"
-import BackButton from "../components/buttons/BackButton"
-import Button from "../components/buttons/Button"
-import Tooltip from "../components/ui/Tooltip"
-import { FileUploadZone } from "../components/dropdown/FileUploadZone"
+} from "../../components/dropdown/DropdownMenu"
+import Modal from "../../components/modal/Modal"
+import ConfirmModal from "../../components/modal/ConfirmModal"
+import BackButton from "../../components/buttons/BackButton"
+import Button from "../../components/buttons/Button"
+import Tooltip from "../../components/ui/Tooltip"
+import { FileUploadZone } from "../../components/dropdown/FileUploadZone"
+import { AddMusicsInPlaylist } from "./AddMusicsInPlaylist"
 
 const PlaylistView: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -52,12 +53,13 @@ const PlaylistView: React.FC = () => {
     title: string
     description: string
   }>({ title: "", description: "" })
-
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
-
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false)
+  const [isImportingCsv, setIsImportingCsv] = useState<boolean>(false)
+  const [importData, setImportData] = useState<{ queue: any[] } | null>(null)
+  const [showMatcher, setShowMatcher] = useState(false)
 
   const {
     playTrack,
@@ -69,37 +71,38 @@ const PlaylistView: React.FC = () => {
   } = usePlayer()
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return
-      setIsLoading(true)
-      try {
-        const playlistIdNumber = Number(id)
-
-        const [tracksRes, playlistRes] = await Promise.all([
-          playlistTrackService.getPlaylistTracks(id),
-          playlistService.getPlaylistById(playlistIdNumber),
-        ])
-
-        if (tracksRes.success && tracksRes.data) {
-          setTracks(tracksRes.data)
-        } else {
-          showToast(
-            tracksRes.error?.message || "Impossible de charger les musiques.",
-            "error",
-          )
-        }
-
-        if (playlistRes.success && playlistRes.data) {
-          setPlaylist(playlistRes.data)
-        }
-      } catch (error) {
-        showToast("Erreur réseau.", "error")
-      } finally {
-        setIsLoading(false)
-      }
-    }
     fetchData()
   }, [id])
+
+  const fetchData = async () => {
+    if (!id) return
+    setIsLoading(true)
+    try {
+      const playlistIdNumber = Number(id)
+
+      const [tracksRes, playlistRes] = await Promise.all([
+        playlistTrackService.getPlaylistTracks(id),
+        playlistService.getPlaylistById(playlistIdNumber),
+      ])
+
+      if (tracksRes.success && tracksRes.data) {
+        setTracks(tracksRes.data)
+      } else {
+        showToast(
+          tracksRes.error?.message || "Impossible de charger les musiques.",
+          "error",
+        )
+      }
+
+      if (playlistRes.success && playlistRes.data) {
+        setPlaylist(playlistRes.data)
+      }
+    } catch (error) {
+      showToast("Erreur réseau.", "error")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleRemoveTrack = async (musicId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
@@ -243,7 +246,8 @@ const PlaylistView: React.FC = () => {
   }
 
   const downloadTemplateCsv = () => {
-    const csvContent = "data:text/csv;charset=utf-8,TITLE,ARTIST,URL\n"
+    const csvContent =
+      "data:text/csv;charset=utf-8,title,artist_name,duration\n"
     const encodedUri = encodeURI(csvContent)
     const link = document.createElement("a")
     link.setAttribute("href", encodedUri)
@@ -254,8 +258,17 @@ const PlaylistView: React.FC = () => {
   }
 
   const handleCsvUpload = async (file: File) => {
-    showToast(`Fichier ${file.name} prêt pour l'import.`, "info")
-    setIsImportModalOpen(false)
+    setIsImportingCsv(true)
+    const res = await playlistService.importCsvToPlaylist(id!, file)
+
+    if (res.success && res.data) {
+      setImportData(res.data)
+      setIsImportModalOpen(false)
+      setShowMatcher(true)
+    } else {
+      showToast(res.error?.message || "Erreur lors de l'import.", "error")
+    }
+    setIsImportingCsv(false)
   }
 
   const getPlayerSafeTracks = () => {
@@ -266,6 +279,11 @@ const PlaylistView: React.FC = () => {
       image: t.image || "",
       duration: t.duration,
     })) as IPlayerTrack[]
+  }
+
+  const onClose = () => {
+    setShowMatcher(false)
+    navigate("/library")
   }
 
   const displayCover =
@@ -615,7 +633,7 @@ const PlaylistView: React.FC = () => {
 
       <Modal
         isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
+        onClose={() => !isImportingCsv && setIsImportModalOpen(false)}
         title="Importer des musiques (.csv)"
       >
         <div className="w-full py-2 space-y-4">
@@ -631,22 +649,40 @@ const PlaylistView: React.FC = () => {
             <button
               type="button"
               onClick={downloadTemplateCsv}
-              className="flex items-center gap-2 text-xs font-bold text-[#1db954] hover:text-[#1ed760] transition-colors bg-[#1db954]/10 hover:bg-[#1db954]/20 px-3 py-1.5 rounded-full border border-[#1db954]/20 whitespace-nowrap self-stretch sm:self-auto justify-center cursor-pointer"
+              disabled={isImportingCsv}
+              className="flex items-center gap-2 text-xs font-bold text-[#1db954] hover:text-[#1ed760] transition-colors bg-[#1db954]/10 hover:bg-[#1db954]/20 px-3 py-1.5 rounded-full border border-[#1db954]/20 whitespace-nowrap self-stretch sm:self-auto justify-center cursor-pointer disabled:opacity-50"
             >
               <Download size={14} />
               Télécharger le template
             </button>
           </div>
 
-          <FileUploadZone
-            acceptedTypes={["text/csv", "application/vnd.ms-excel", ".csv"]}
-            maxSizeInMB={5}
-            onUpload={handleCsvUpload}
-            title="Glissez votre fichier CSV ici"
-            subtitle="Format attendu : TITLE, ARTIST, URL"
-          />
+          {isImportingCsv ? (
+            <div className="flex flex-col items-center justify-center py-10 space-y-4">
+              <Loader2 className="animate-spin text-[#1db954] w-10 h-10" />
+              <p className="text-sm font-medium text-[#b3b3b3]">
+                Analyse du fichier en cours...
+              </p>
+            </div>
+          ) : (
+            <FileUploadZone
+              acceptedTypes={["text/csv", "application/vnd.ms-excel", ".csv"]}
+              maxSizeInMB={5}
+              onUpload={handleCsvUpload}
+              title="Glissez votre fichier CSV ici"
+              subtitle="Format attendu : title, artist_name, duration"
+            />
+          )}
         </div>
       </Modal>
+      {importData && id && (
+        <AddMusicsInPlaylist
+          isOpen={showMatcher}
+          onClose={() => onClose()}
+          playlistId={id}
+          queue={importData.queue}
+        />
+      )}
     </div>
   )
 }

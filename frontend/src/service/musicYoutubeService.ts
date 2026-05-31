@@ -1,7 +1,6 @@
 import { apiRequest } from "./APIRequest"
 import { type ITrack } from "../interface/IMusic"
 import type { ApiResponse } from "../interface/ApiResponse"
-import { API_URL } from "../constant"
 
 export const musicYoutubeService = {
   search: async (query: string): Promise<ApiResponse<ITrack[]>> => {
@@ -10,8 +9,8 @@ export const musicYoutubeService = {
     )
   },
 
-  getPreview: (id: string): string => {
-    return `${API_URL}/api/music-youtube/preview/${id}`
+  getPreview: async (id: string): Promise<ApiResponse<{ url: string }>> => {
+    return apiRequest.get<{ url: string }>(`music-youtube/preview/${id}`)
   },
 
   downloadMusic: async (

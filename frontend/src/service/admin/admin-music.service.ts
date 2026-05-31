@@ -17,4 +17,12 @@ export const adminMusicService = {
   deleteMusic: async (id: string): Promise<ApiResponse<null>> => {
     return apiRequest.delete<null>(`admin/musics/deleteMusic/${id}`)
   },
+
+  cleanOrphanedMusics: async (): Promise<
+    ApiResponse<{ message: string; deletedCount: number }>
+  > => {
+    return apiRequest.delete<{ message: string; deletedCount: number }>(
+      "admin/musics/cleanOrphaned",
+    )
+  },
 }
