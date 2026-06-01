@@ -28,7 +28,7 @@ export const ImportSearchStep: React.FC<ImportSearchStepProps> = ({
           <Loader2 className="animate-spin text-[#1db954]" />
         </div>
       ) : (
-        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+        <div className="space-y-2 max-h-75 overflow-y-auto pr-1 custom-scrollbar">
           {searchResults.length > 0 ? (
             searchResults.map((res) => (
               <button

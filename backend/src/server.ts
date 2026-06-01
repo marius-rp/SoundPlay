@@ -15,6 +15,7 @@ import adminRoutes from "./modules/routes/admin.route"
 import roleRoutes from "./modules/routes/role.route"
 import { logger } from "./utils/logger.helper"
 import PlayMusicRouter from "./modules/routes/playMusic.route"
+import { proxyManager } from "./utils/proxyManager.helper"
 
 dotenv.config()
 
@@ -54,6 +55,7 @@ app.get("/", (req, res) => {
 const startServer = async () => {
   try {
     await connectDB()
+    await proxyManager.init()
 
     app.listen(PORT, () => {
       logger(

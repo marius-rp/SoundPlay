@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
 
 export const uploadCoverMiddleware = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limite à 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true)
@@ -53,7 +53,7 @@ export const uploadProxyCsvMiddleware = multer({
 
 export const uploadMusicCsvMiddleware = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limite à 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase()
     if (

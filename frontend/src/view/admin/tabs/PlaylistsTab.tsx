@@ -143,7 +143,7 @@ const PlaylistsTab: React.FC = () => {
       />
 
       <div className="bg-[#181818] rounded-xl border border-white/5 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10">
-        <table className="w-full text-left text-sm text-gray-300 min-w-[900px]">
+        <table className="w-full text-left text-sm text-gray-300 min-w-225">
           <thead className="bg-[#282828] text-gray-400">
             <tr>
               <th className="px-6 py-4 font-medium uppercase text-[10px] tracking-widest w-[10%]">
@@ -228,11 +228,11 @@ const PlaylistsTab: React.FC = () => {
                         onChange={(e) =>
                           setEditForm({ ...editForm, title: e.target.value })
                         }
-                        className="h-8 text-xs w-full max-w-[250px]"
+                        className="h-8 text-xs w-full max-w-62.5"
                       />
                     ) : (
                       <span
-                        className="font-bold text-white block truncate max-w-[250px]"
+                        className="font-bold text-white block truncate max-w-62.5"
                         title={p.title}
                       >
                         {p.title}
@@ -241,7 +241,7 @@ const PlaylistsTab: React.FC = () => {
                   </td>
 
                   <td className="px-6 py-4">
-                    <span className="block truncate max-w-[200px] text-gray-400">
+                    <span className="block truncate max-w-50 text-gray-400">
                       {p.creator_name || `Utilisateur n°${p.user_id}`}
                     </span>
                   </td>

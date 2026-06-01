@@ -71,7 +71,7 @@ const UsersTab: React.FC = () => {
         u.name.toLowerCase().includes(lowerSearch) ||
         u.surname.toLowerCase().includes(lowerSearch) ||
         u.email.toLowerCase().includes(lowerSearch) ||
-        u.role.type.toLowerCase().includes(lowerSearch) ||
+        u?.role?.type.toLowerCase().includes(lowerSearch) ||
         u.id.toString().includes(lowerSearch) ||
         dateStr.includes(lowerSearch)
       )
@@ -174,7 +174,7 @@ const UsersTab: React.FC = () => {
       </div>
 
       <div className="bg-[#181818] rounded-xl border border-white/5 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10">
-        <table className="w-full text-left text-sm text-gray-300 min-w-[900px]">
+        <table className="w-full text-left text-sm text-gray-300 min-w-225">
           <thead className="bg-[#282828] text-gray-400">
             <tr>
               <th className="px-6 py-4 font-medium uppercase text-[10px] tracking-widest w-[8%]">
@@ -205,7 +205,7 @@ const UsersTab: React.FC = () => {
                 </td>
                 <td className="px-6 py-4">
                   {editingId === u.id ? (
-                    <div className="flex flex-col gap-1 w-full max-w-[200px]">
+                    <div className="flex flex-col gap-1 w-full max-w-50">
                       <Input
                         value={editForm.name}
                         onChange={(e) =>
@@ -224,7 +224,7 @@ const UsersTab: React.FC = () => {
                       />
                     </div>
                   ) : (
-                    <span className="text-white block truncate max-w-[200px]">
+                    <span className="text-white block truncate max-w-50">
                       <span className="uppercase font-bold">{u.name}</span>{" "}
                       {u.surname}
                     </span>
@@ -237,20 +237,17 @@ const UsersTab: React.FC = () => {
                       onChange={(e) =>
                         setEditForm({ ...editForm, email: e.target.value })
                       }
-                      className="h-8 text-xs w-full max-w-[300px]"
+                      className="h-8 text-xs w-full max-w-75"
                     />
                   ) : (
-                    <span
-                      className="block truncate max-w-[300px]"
-                      title={u.email}
-                    >
+                    <span className="block truncate max-w-75" title={u.email}>
                       {u.email}
                     </span>
                   )}
                 </td>
                 <td className="px-6 py-4">
                   {editingId === u.id ? (
-                    <div className="w-full max-w-[150px]">
+                    <div className="w-full max-w-37.5">
                       <Select
                         value={editForm.role_id}
                         onChange={(val) =>
@@ -264,10 +261,10 @@ const UsersTab: React.FC = () => {
                     </div>
                   ) : (
                     <Badge
-                      variant={u.role.id === ROLES.ADMIN ? "red" : "blue"}
+                      variant={u?.role?.id === ROLES.ADMIN ? "red" : "blue"}
                       size="md"
                     >
-                      {u.role.type}
+                      {u?.role?.type}
                     </Badge>
                   )}
                 </td>

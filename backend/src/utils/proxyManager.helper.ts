@@ -10,8 +10,8 @@ class ProxyManager {
   private proxies: string[] = []
   private currentProxyIndex = 0
 
-  constructor() {
-    this.refreshProxies()
+  public async init() {
+    await this.refreshProxies()
   }
 
   public async checkAllProxiesHealth() {

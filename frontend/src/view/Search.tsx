@@ -123,7 +123,17 @@ const Search: React.FC = () => {
     audioRef.current.pause()
     setCurrentPreviewId(track.id)
     setIsLoadingPreview(track.id)
-    audioRef.current.src = musicYoutubeService.getPreview(track.id)
+
+    const previewRes = await musicYoutubeService.getPreview(track.id)
+    if (!previewRes.success || !previewRes.data) {
+      setCurrentPreviewId(null)
+      setIsLoadingPreview(null)
+      showToast("Impossible de charger l'aperçu", "error")
+      return
+    }
+
+    audioRef.current.src = previewRes.data.url
+    
     try {
       await audioRef.current.play()
       setIsLoadingPreview(null)

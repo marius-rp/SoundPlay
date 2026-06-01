@@ -20,7 +20,7 @@ export const ImportSummaryStep: React.FC<ImportSummaryStepProps> = ({
             Certains titres n'ont pas été trouvés. Cliquez sur une ligne pour
             coller manuellement l'URL ou l'ID de la vidéo YouTube.
           </p>
-          <div className="max-h-[350px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+          <div className="max-h-87.5 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
             {skippedMusics.map((music, idx) => (
               <SkippedMusicItem
                 key={`${music.title}-${idx}`}
