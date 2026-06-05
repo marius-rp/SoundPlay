@@ -30,7 +30,7 @@ const UsersTab: React.FC = () => {
   const [editForm, setEditForm] = useState({
     name: "",
     surname: "",
-    email: "",
+    login: "",
     role_id: 0,
   })
 
@@ -70,7 +70,7 @@ const UsersTab: React.FC = () => {
       return (
         u.name.toLowerCase().includes(lowerSearch) ||
         u.surname.toLowerCase().includes(lowerSearch) ||
-        u.email.toLowerCase().includes(lowerSearch) ||
+        u.login.toLowerCase().includes(lowerSearch) ||
         u?.role?.type.toLowerCase().includes(lowerSearch) ||
         u.id.toString().includes(lowerSearch) ||
         dateStr.includes(lowerSearch)
@@ -141,7 +141,7 @@ const UsersTab: React.FC = () => {
     setEditForm({
       name: u.name || "",
       surname: u.surname || "",
-      email: u.email,
+      login: u.login,
       role_id: (u.role as IRole).id,
     })
     setEditingId(u.id)
@@ -159,7 +159,7 @@ const UsersTab: React.FC = () => {
     <div className="space-y-4 animate-in fade-in duration-300">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <SearchBar
-          placeholder="Rechercher par nom, email, ID, rôle..."
+          placeholder="Rechercher par nom, login, ID, rôle..."
           value={search}
           onChange={setSearch}
           className="w-full sm:max-w-md"
@@ -184,7 +184,7 @@ const UsersTab: React.FC = () => {
                 Nom complet
               </th>
               <th className="px-6 py-4 font-medium uppercase text-[10px] tracking-widest w-[35%]">
-                Email
+                Login
               </th>
               <th className="px-6 py-4 font-medium uppercase text-[10px] tracking-widest w-[20%]">
                 Rôle
@@ -233,15 +233,15 @@ const UsersTab: React.FC = () => {
                 <td className="px-6 py-4">
                   {editingId === u.id ? (
                     <Input
-                      value={editForm.email}
+                      value={editForm.login}
                       onChange={(e) =>
-                        setEditForm({ ...editForm, email: e.target.value })
+                        setEditForm({ ...editForm, login: e.target.value })
                       }
                       className="h-8 text-xs w-full max-w-75"
                     />
                   ) : (
-                    <span className="block truncate max-w-75" title={u.email}>
-                      {u.email}
+                    <span className="block truncate max-w-75" title={u.login}>
+                      {u.login}
                     </span>
                   )}
                 </td>

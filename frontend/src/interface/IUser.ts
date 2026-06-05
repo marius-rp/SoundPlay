@@ -2,7 +2,8 @@ import type { IRole } from "./IRole"
 
 export interface IUser {
   id: number
-  email: string
+  login: string
+  email?: string
   name: string
   surname: string
   role?: IRole

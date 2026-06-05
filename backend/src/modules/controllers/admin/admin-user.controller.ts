@@ -33,27 +33,27 @@ export const createUser = async (req: Request, res: Response) => {
   const adminId = (req as any).user?.id || "SYSTEM"
 
   try {
-    const { email, password, name, surname, role_id } = req.body
+    const { login, password, name, surname, role_id } = req.body
 
-    if (!email || !password || !name || !surname || !role_id) {
+    if (!login || !password || !name || !surname || !role_id) {
       return errorResponse(res, 400, "Tous les champs sont requis.")
     }
 
-    const userExists = await userService.getByEmail(email)
+    const userExists = await userService.getByLogin(login)
     if (userExists) {
       logger(
         adminId,
         FILE_NAME,
         "WARN",
-        `Tentative de création avec un email existant : ${email}`,
+        `Tentative de création avec un login existant : ${login}`,
       )
-      return errorResponse(res, 409, "Cet email est déjà utilisé.")
+      return errorResponse(res, 409, "Cet login est déjà utilisé.")
     }
 
     const hashedPassword = await argon2.hash(password)
 
     const newUserId = await userService.create({
-      email,
+      login,
       password: hashedPassword,
       name,
       surname,
@@ -65,7 +65,7 @@ export const createUser = async (req: Request, res: Response) => {
         adminId,
         FILE_NAME,
         "INFO",
-        `Nouvel utilisateur créé par l'admin : ${email} (ID: ${newUserId}, Rôle: ${role_id})`,
+        `Nouvel utilisateur créé par l'admin : ${login} (ID: ${newUserId}, Rôle: ${role_id})`,
       )
       return successResponse(res, 201, {
         id: newUserId,
@@ -87,13 +87,13 @@ export const createUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const adminId = (req as any).user?.id || "SYSTEM"
   const targetUserId = Number(req.params.id)
-  const { name, surname, email, role_id } = req.body
+  const { name, surname, login, role_id } = req.body
 
-  if (!name || !surname || !email || role_id === undefined) {
+  if (!name || !surname || !login || role_id === undefined) {
     return errorResponse(
       res,
       400,
-      "Tous les champs (nom, prénom, email, rôle) sont requis.",
+      "Tous les champs (nom, prénom, login, rôle) sont requis.",
     )
   }
 
@@ -101,7 +101,7 @@ export const updateUser = async (req: Request, res: Response) => {
     const result = await userService.updateUser(targetUserId, {
       name,
       surname,
-      email,
+      login,
       role_id: Number(role_id),
     })
 

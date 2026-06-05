@@ -3,7 +3,8 @@ import { Role } from "./Role"
 
 export interface User {
   id: number
-  email: string
+  login: string
+  email?: string
   password?: string
   name: string
   surname: string

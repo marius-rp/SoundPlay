@@ -10,7 +10,7 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
 
   const [formData, setFormData] = useState({
-    email: "",
+    login: "",
     password: "",
     name: "",
     surname: "",
@@ -26,7 +26,7 @@ const Login: React.FC = () => {
     setIsLoading(true)
 
     if (isLoginMode) {
-      const res = await loginUser(formData.email, formData.password)
+      const res = await loginUser(formData.login, formData.password)
 
       if (res.success) {
         showToast(
@@ -89,12 +89,12 @@ const Login: React.FC = () => {
           )}
 
           <Input
-            type="email"
-            placeholder="Adresse e-mail"
-            value={formData.email}
+            type="login"
+            placeholder="login"
+            value={formData.login}
             autoFocus
             onChange={(e) =>
-              setFormData({ ...formData, email: e.target.value })
+              setFormData({ ...formData, login: e.target.value })
             }
           />
 

@@ -11,7 +11,10 @@ export const adminUserService = {
     return apiRequest.post<null>("admin/users/createUser", data)
   },
 
-  updateUser: async (id: number, data: { name: string; surname: string; email: string; role_id: number }): Promise<ApiResponse<null>> => {
+  updateUser: async (
+    id: number,
+    data: { name: string; surname: string; login: string; role_id: number },
+  ): Promise<ApiResponse<null>> => {
     return apiRequest.put<null>(`admin/users/updateUser/${id}`, data)
   },
 

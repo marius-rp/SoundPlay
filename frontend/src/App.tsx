@@ -13,6 +13,7 @@ import Admin from "./view/admin/Admin"
 import PlaylistView from "./view/playlist/PlaylistView"
 import { PlayerProvider } from "./context/PlayerContext"
 import { ROLES } from "./constant"
+import VerifyEmail from "./view/VerifyEmail"
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <PlayerProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route
                 element={
                   <ProtectedRoute>
@@ -73,7 +75,9 @@ function App() {
                 <Route
                   path="/Admin"
                   element={
-                    <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPERVISOR]}>
+                    <ProtectedRoute
+                      allowedRoles={[ROLES.ADMIN, ROLES.SUPERVISOR]}
+                    >
                       <Admin />
                     </ProtectedRoute>
                   }

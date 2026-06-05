@@ -1,16 +1,16 @@
-import React, { useState } from "react";
-import Modal from "./Modal";
-import Input from "../dropdown/Input";
-import Button from "../buttons/Button";
-import type { IRole } from "../../interface/IRole";
-import Select from "../dropdown/Select";
+import React, { useState } from "react"
+import Modal from "./Modal"
+import Input from "../dropdown/Input"
+import Button from "../buttons/Button"
+import type { IRole } from "../../interface/IRole"
+import Select from "../dropdown/Select"
 
 interface UserFormModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: (data: any) => Promise<void>;
-  roles: IRole[];
-  isLoading?: boolean;
+  isOpen: boolean
+  onClose: () => void
+  onAdd: (data: any) => Promise<void>
+  roles: IRole[]
+  isLoading?: boolean
 }
 
 const UserFormModal: React.FC<UserFormModalProps> = ({
@@ -23,29 +23,29 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
-    email: "",
+    login: "",
     password: "",
     role_id: 1,
-  });
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onAdd(formData);
+    e.preventDefault()
+    await onAdd(formData)
     setFormData({
       name: "",
       surname: "",
-      email: "",
+      login: "",
       password: "",
       role_id: roles[0]?.id || 1,
-    });
-    onClose();
-  };
+    })
+    onClose()
+  }
 
   React.useEffect(() => {
     if (isOpen && roles.length > 0 && formData.role_id === 0) {
-      setFormData((prev) => ({ ...prev, role_id: roles[0].id }));
+      setFormData((prev) => ({ ...prev, role_id: roles[0].id }))
     }
-  }, [isOpen, roles]);
+  }, [isOpen, roles])
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Créer un Utilisateur">
@@ -89,12 +89,12 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
               <div className="flex-3">
                 <Input
                   required
-                  type="email"
-                  value={formData.email}
+                  type="login"
+                  value={formData.login}
                   onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
+                    setFormData({ ...formData, login: e.target.value })
                   }
-                  placeholder="Adresse email"
+                  placeholder="login"
                   className="h-10 sm:h-9"
                 />
               </div>
@@ -150,7 +150,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
         </div>
       </form>
     </Modal>
-  );
-};
+  )
+}
 
-export default UserFormModal;
+export default UserFormModal

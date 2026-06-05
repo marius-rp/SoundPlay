@@ -1,33 +1,35 @@
 import { Request, Response } from "express"
 import argon2 from "argon2"
-import { userService } from "../services/user.service"
-import { successResponse, errorResponse } from "../../utils/ApiResponse.helper"
 import jwt from "jsonwebtoken"
+import { userService } from "../services/user.service"
+import { emailService } from "../services/email.service"
+import { successResponse, errorResponse } from "../../utils/ApiResponse.helper"
 import { logger } from "../../utils/logger.helper"
+import { ROLES } from "../../constant"
 
 const FILE_NAME = "auth.controller.ts"
 
 export const signUp = async (req: Request, res: Response) => {
   try {
-    const { email, password, name, surname } = req.body
+    const { login, password, name, surname } = req.body
 
-    if (!email || !password || !name || !surname) {
+    if (!login || !password || !name || !surname) {
       return errorResponse(res, 400, "Données manquantes")
     }
 
-    const userExists = await userService.getByEmail(email)
+    const userExists = await userService.getByLogin(login)
     if (userExists) {
-      return errorResponse(res, 409, "Cet email est déjà utilisé")
+      return errorResponse(res, 409, "Ce login est déjà utilisé")
     }
 
     const hashedPassword = await argon2.hash(password)
 
     const newUserId = await userService.create({
-      email,
+      login,
       password: hashedPassword,
       name,
       surname,
-      role_id: 1,
+      role_id: ROLES.USER,
     })
 
     if (newUserId) {
@@ -35,7 +37,7 @@ export const signUp = async (req: Request, res: Response) => {
         "SYSTEM",
         FILE_NAME,
         "INFO",
-        `Nouvel utilisateur inscrit : ${email} (ID: ${newUserId})`,
+        `Nouvel utilisateur inscrit : ${login} (ID: ${newUserId})`,
       )
       return successResponse(res, 201, {
         id: newUserId,
@@ -52,26 +54,36 @@ export const signUp = async (req: Request, res: Response) => {
 
 export const signIn = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body
+    const { login, password } = req.body
 
-    if (!email || !password) {
-      return errorResponse(res, 400, "Email et mot de passe requis")
+    if (!login || !password) {
+      return errorResponse(res, 400, "Login et mot de passe requis")
     }
 
-    const user = await userService.getByEmail(email)
+    const user = await userService.getByLogin(login)
 
-    if (!user || !(await argon2.verify(user.password!, password)) || !user.role) {
+    if (
+      !user ||
+      !(await argon2.verify(user.password!, password)) ||
+      !user.role
+    ) {
       logger(
         "SYSTEM",
         FILE_NAME,
         "WARN",
-        `Tentative de connexion échouée pour : ${email}`,
+        `Tentative de connexion échouée pour : ${login}`,
       )
       return errorResponse(res, 401, "Identifiants incorrects")
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name, surname: user.surname, role_id: user?.role.id },
+      {
+        id: user.id,
+        login: user.login,
+        name: user.name,
+        surname: user.surname,
+        role_id: user?.role.id,
+      },
       process.env.JWT_SECRET as string,
       { expiresIn: "24h" },
     )
@@ -84,7 +96,7 @@ export const signIn = async (req: Request, res: Response) => {
     })
 
     const { password: _, ...userPublic } = user
-    logger(user.id, FILE_NAME, "INFO", `Utilisateur connecté : ${email}`)
+    logger(user.id, FILE_NAME, "INFO", `Utilisateur connecté : ${login}`)
 
     return successResponse(res, 200, {
       user: userPublic,
@@ -180,6 +192,145 @@ export const deleteMe = async (req: Request, res: Response) => {
   } catch (error: any) {
     logger(userId, FILE_NAME, "ERROR", error)
     return errorResponse(res, 500, "Erreur lors de la suppression du compte")
+  }
+}
+
+export const requestEmailVerification = async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id
+  const userLogin = (req as any).user?.login
+
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      return errorResponse(res, 400, "E-mail requis")
+    }
+
+    const emailExists = await userService.getByEmail(email)
+    if (emailExists) {
+      return errorResponse(
+        res,
+        400,
+        "Cet e-mail est déjà lié à un autre compte.",
+      )
+    }
+
+    const token = jwt.sign(
+      { id: userId, newEmail: email },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "15m" },
+    )
+
+    const verificationLink = `${process.env.NODE_FRONTEND}/verify-email?token=${token}`
+
+    const emailSent = await emailService.sendVerificationEmail(
+      email,
+      userLogin,
+      verificationLink,
+    )
+
+    if (!emailSent) {
+      return errorResponse(
+        res,
+        500,
+        "Le service de messagerie rencontre un problème. Réessayez plus tard.",
+      )
+    }
+
+    logger(
+      userId,
+      FILE_NAME,
+      "INFO",
+      `E-mail de vérification envoyé à ${email}. Lien : ${verificationLink}`,
+    )
+
+    return successResponse(res, 200, {
+      message: "Un e-mail de confirmation vous a été envoyé !",
+    })
+  } catch (error: any) {
+    logger(userId, FILE_NAME, "ERROR", error)
+    return errorResponse(res, 500, "Erreur lors de la préparation de l'e-mail")
+  }
+}
+
+export const verifyEmail = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query
+
+    if (!token || typeof token !== "string") {
+      return errorResponse(res, 400, "Token manquant ou invalide")
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any
+    try {
+      const alreadyTaken = await userService.getByEmail(decoded.newEmail)
+      if (alreadyTaken && alreadyTaken.id !== decoded.id) {
+        return errorResponse(
+          res,
+          400,
+          "Cet e-mail vient d'être pris par un autre utilisateur.",
+        )
+      }
+    } catch (err) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "WARN",
+        "Tentative de validation échouée (Token invalide ou expiré)",
+      )
+      return errorResponse(
+        res,
+        400,
+        "Le lien de validation est invalide ou a expiré.",
+      )
+    }
+
+    const { id, newEmail } = decoded
+
+    if (!id || !newEmail) {
+      return errorResponse(res, 400, "Token mal formé")
+    }
+
+    const currentUser = await userService.getUserById(id)
+    if (currentUser && currentUser.email === newEmail) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "INFO",
+        `L'e-mail est déjà validé pour l'utilisateur ID ${id}. (Ignoré)`,
+      )
+      return successResponse(res, 200, {
+        message: "Votre e-mail a déjà été lié à votre compte !",
+      })
+    }
+
+    const updateResponse = await userService.updateEmail(id, newEmail)
+
+    if (!updateResponse.success) {
+      return errorResponse(
+        res,
+        400,
+        updateResponse.error?.message || "Erreur lors de la mise à jour",
+      )
+    }
+
+    logger(
+      "SYSTEM",
+      FILE_NAME,
+      "INFO",
+      `E-mail validé et lié avec succès pour l'utilisateur ID ${id}.`,
+    )
+
+    return successResponse(res, 200, {
+      message: "Votre e-mail a bien été lié à votre compte !",
+    })
+  } catch (error: any) {
+    logger("SYSTEM", FILE_NAME, "ERROR", error)
+    return errorResponse(
+      res,
+      500,
+      "Erreur interne lors de la vérification de l'e-mail",
+    )
   }
 }
 

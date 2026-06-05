@@ -12,7 +12,11 @@ import {
 import Modal from "../components/modal/Modal"
 import { useToast } from "../context/ToastContext"
 import { useNavigate } from "react-router-dom"
-import { changePassword, deleteAccount } from "../service/authService"
+import {
+  changePassword,
+  deleteAccount,
+  requestEmailVerification,
+} from "../service/authService"
 import { useAuth } from "../protection/AuthContext"
 import {
   DropdownMenu,
@@ -20,11 +24,15 @@ import {
   DropdownDivider,
 } from "../components/dropdown/DropdownMenu"
 import { ROLES } from "../constant"
+import Button from "../components/buttons/Button"
 
 const Profile: React.FC = () => {
   const { user, fullName, clearUser } = useUser()
   const [isOpenPopUp, setIsOpenPopUp] = useState<boolean>(false)
   const [isOpenChangePsw, setIsOpenChangePsw] = useState<boolean>(false)
+  const [isOpenChangeEmail, setIsOpenChangeEmail] = useState<boolean>(false)
+  const [emailInput, setEmailInput] = useState<string>("")
+  const [isEmailLoading, setIsEmailLoading] = useState<boolean>(false)
 
   const [pswData, setPswData] = useState({
     oldPassword: "",
@@ -83,6 +91,28 @@ const Profile: React.FC = () => {
     }
   }
 
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!emailInput) return
+
+    setIsEmailLoading(true)
+    try {
+      const res = await requestEmailVerification({ email: emailInput })
+
+      if (res.success) {
+        showToast("Un e-mail de vérification vous a été envoyé !", "success")
+        setIsOpenChangeEmail(false)
+        setEmailInput("")
+      } else {
+        showToast(res.error?.message || "Une erreur est survenue", "error")
+      }
+    } catch (err) {
+      showToast("Une erreur réseau est survenue", "error")
+    } finally {
+      setIsEmailLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-full bg-[#121212] overflow-x-hidden">
       <div className="relative bg-linear-to-b from-[#414141] to-[#121212] p-4 md:p-8 pt-12 md:pt-20">
@@ -101,12 +131,9 @@ const Profile: React.FC = () => {
               {fullName}
             </h1>
             <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 text-sm font-bold">
+              <span className="w-1 h-1 bg-white rounded-full"></span>
               <span className="hover:underline cursor-pointer">
                 12 Playlists
-              </span>
-              <span className="w-1 h-1 bg-white rounded-full"></span>
-              <span className="text-gray-300">
-                Compte {user?.role?.id === ROLES.ADMIN ? "Admin" : "Standard"}
               </span>
             </div>
           </div>
@@ -150,11 +177,14 @@ const Profile: React.FC = () => {
             </div>
 
             <span className="text-gray-400 group-hover:text-white text-sm md:text-base truncate flex-1 md:flex-none">
-              {user?.email}
+              {!user?.email ? "Aucun e-mail renseigné" : user.email}
             </span>
 
             <div className="flex justify-end shrink-0">
-              <button className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-[#1ed760] transition-all p-2 -mr-2 md:mr-0">
+              <button
+                onClick={() => setIsOpenChangeEmail(true)}
+                className="cursor-pointer flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-[#1ed760] transition-all p-2 -mr-2 md:mr-0"
+              >
                 <Pen size={14} />
                 <span className="hidden sm:inline-block">Modifier</span>
               </button>
@@ -170,7 +200,11 @@ const Profile: React.FC = () => {
               <span className="font-bold text-sm text-white">Rôle</span>
             </div>
             <span className="text-gray-400 group-hover:text-white col-span-1 md:col-span-2">
-              {user?.role?.id === ROLES.ADMIN ? "Administrateur" : "Utilisateur Standard"}
+              {user?.role?.id === ROLES.ADMIN
+                ? "Administrateur"
+                : user?.role?.id === ROLES.SUPERVISOR
+                  ? "Superviseur"
+                  : "Utilisateur"}
             </span>
           </div>
 
@@ -204,18 +238,19 @@ const Profile: React.FC = () => {
             Toutes vos playlists et préférences seront perdues à jamais.
           </p>
           <div className="flex flex-col w-full gap-3 pt-4">
-            <button
+            <Button
               onClick={handleDeleteAccount}
-              className="w-full py-3 bg-red-600 text-white font-bold rounded-full"
+              className="w-full py-3 bg-red-600 text-white font-bold rounded-full hover:bg-red-700"
             >
               Supprimer définitivement
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setIsOpenPopUp(false)}
-              className="w-full py-3 text-white font-bold hover:underline"
+              variant="secondary"
+              className="w-full py-3 text-white font-bold hover:underline "
             >
               Annuler
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -247,12 +282,49 @@ const Profile: React.FC = () => {
               </div>
             ))}
           </div>
-          <button
+          <Button
             type="submit"
             className="w-full py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition"
           >
             Mettre à jour
-          </button>
+          </Button>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isOpenChangeEmail}
+        onClose={() => setIsOpenChangeEmail(false)}
+        title="Adresse e-mail"
+      >
+        <form onSubmit={handleEmailSubmit} className="space-y-5 px-1">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase text-gray-400 block">
+              Nouvelle adresse e-mail
+            </label>
+            <input
+              type="email"
+              required
+              placeholder="exemple@domaine.com"
+              value={emailInput}
+              className="w-full bg-[#282828] border-none rounded-md p-3 text-white focus:ring-1 focus:ring-[#1ed760] outline-none text-sm"
+              onChange={(e) => setEmailInput(e.target.value)}
+            />
+            <div className="text-[11px] text-gray-400 leading-normal pt-1">
+              Un e-mail contenant un lien de validation sera envoyé à cette
+              adresse afin de confirmer votre identité.
+              <br />
+              <span className="font-bold text-red-600">
+                Attention : Vérifiez votre dossier de spam
+              </span>
+            </div>
+          </div>
+          <Button
+            type="submit"
+            isLoading={isEmailLoading}
+            className="w-full py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition"
+          >
+            Envoyer le lien de vérification
+          </Button>
         </form>
       </Modal>
     </div>

@@ -8,17 +8,17 @@ const FILE_NAME = "user.service.ts"
 
 export const userService = {
   create: async (userData: Partial<User>): Promise<number | null> => {
-    const { email, password, name, surname, role_id } = userData
+    const { login, password, name, surname, role_id } = userData
     try {
       const [result] = await pool.query<ResultSetHeader>(
-        "INSERT INTO users (email, password, name, surname, role_id) VALUES (?, ?, ?, ?, ?)",
-        [email, password, name, surname, role_id],
+        "INSERT INTO users (login, password, name, surname, role_id) VALUES (?, ?, ?, ?, ?)",
+        [login, password, name, surname, role_id],
       )
       logger(
         "SYSTEM",
         FILE_NAME,
         "INFO",
-        `Utilisateur créé en base de données : ${email}`,
+        `Utilisateur créé en base de données : ${login}`,
       )
       return result.insertId
     } catch (error: any) {
@@ -32,11 +32,11 @@ export const userService = {
     }
   },
 
-  getByEmail: async (email: string): Promise<User | null> => {
+  getByLogin: async (login: string): Promise<User | null> => {
     try {
       const [rows] = await pool.query<UserRow[]>(
-        "SELECT u.id, u.email, u.password, u.name, u.surname, JSON_OBJECT('id', r.id, 'type', r.type) AS role FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.email = ? LIMIT 1",
-        [email],
+        "SELECT u.id, u.login, u.password, u.name, u.surname, JSON_OBJECT('id', r.id, 'type', r.type) AS role FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.login = ? LIMIT 1",
+        [login],
       )
       return rows.length > 0 ? rows[0] : null
     } catch (error: any) {
@@ -44,7 +44,7 @@ export const userService = {
         "SYSTEM",
         FILE_NAME,
         "ERROR",
-        `Erreur getByEmail (${email}) : ${error.message}`,
+        `Erreur getByLogin (${login}) : ${error.message}`,
       )
       throw error
     }
@@ -63,6 +63,16 @@ export const userService = {
         "ERROR",
         `Erreur getUserById (${userId}) : ${error.message}`,
       )
+      throw error
+    }
+  },
+
+  getByEmail: async (email: string): Promise<User | null> => {
+    try {
+      const [rows]: any = await pool.query("SELECT id FROM users WHERE email = ? LIMIT 1", [email])
+      return rows.length > 0 ? rows[0] : null
+    } catch (error: any) {
+      logger("SYSTEM", FILE_NAME, "ERROR", `Erreur getByEmail (${email}) : ${error.message}`)
       throw error
     }
   },
@@ -122,7 +132,7 @@ export const userService = {
 
   getAllUsers: async (): Promise<ApiResponse<any[]>> => {
     try {
-      const sql = `SELECT u.id, u.email, u.name, u.surname, JSON_OBJECT('id', r.id, 'type', r.type) AS role, u.created_at FROM users u INNER JOIN roles r ON u.role_id = r.id ORDER BY u.created_at DESC`
+      const sql = `SELECT u.id, u.login, u.name, u.surname, JSON_OBJECT('id', r.id, 'type', r.type) AS role, u.created_at FROM users u INNER JOIN roles r ON u.role_id = r.id ORDER BY u.created_at DESC`
       const [rows]: any = await pool.query(sql)
       return { success: true, data: rows, error: null }
     } catch (error: any) {
@@ -143,17 +153,60 @@ export const userService = {
     }
   },
 
-  updateUser: async (
+  updateEmail: async (
     userId: number,
-    data: { name: string; surname: string; email: string; role_id: number },
+    email: string,
   ): Promise<ApiResponse<null>> => {
     try {
-      const { name, surname, email, role_id } = data
-      const sql = `UPDATE users SET name = ?, surname = ?, email = ?, role_id = ? WHERE id = ?`
+      const sql = `UPDATE users SET email = ? WHERE id = ?`
+      const [result]: any = await pool.query(sql, [email, userId])
+
+      if (result.affectedRows === 0) {
+        return {
+          success: false,
+          data: null,
+          error: {
+            code: "USER_NOT_FOUND",
+            message: "Utilisateur non trouvé.",
+          },
+        }
+      }
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "INFO",
+        `E-mail mis à jour pour l'utilisateur ID ${userId}`,
+      )
+      return { success: true, data: null, error: null }
+    } catch (error: any) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "ERROR",
+        `Erreur updateEmail (${userId}): ${error.message}`,
+      )
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: "DB_UPDATE_ERROR",
+          message: "Impossible de mettre à jour l'e-mail.",
+        },
+      }
+    }
+  },
+
+  updateUser: async (
+    userId: number,
+    data: { name: string; surname: string; login: string; role_id: number },
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const { name, surname, login, role_id } = data
+      const sql = `UPDATE users SET name = ?, surname = ?, login = ?, role_id = ? WHERE id = ?`
       const [result]: any = await pool.query(sql, [
         name,
         surname,
-        email,
+        login,
         role_id,
         userId,
       ])
@@ -172,7 +225,7 @@ export const userService = {
         "SYSTEM",
         FILE_NAME,
         "INFO",
-        `Utilisateur ID ${userId} mis à jour (Email: ${email}, RoleID: ${role_id})`,
+        `Utilisateur ID ${userId} mis à jour (Login: ${login}, RoleID: ${role_id})`,
       )
       return { success: true, data: null, error: null }
     } catch (error: any) {

@@ -7,8 +7,8 @@ interface ChangePassword {
   newPassword: string
 }
 
-export const login = async (credentials: {
-  email: string
+export const signIn = async (credentials: {
+  login: string
   password: string
 }): Promise<ApiResponse<{ user: IUser }>> => {
   return apiRequest.post<{ user: IUser }>("auth/sign-in", credentials)
@@ -30,6 +30,18 @@ export const logout = async (): Promise<ApiResponse<null>> => {
 
 export const deleteAccount = async (): Promise<ApiResponse<null>> => {
   return apiRequest.delete<null>("auth/delete-account")
+}
+
+export const requestEmailVerification = async (data: {
+  email: string
+}): Promise<ApiResponse<null>> => {
+  return await apiRequest.post<null>("auth/request-email", data)
+}
+
+export const verifyEmail = async (
+  token: string,
+): Promise<ApiResponse<null>> => {
+  return apiRequest.get<null>(`auth/verify-email?token=${token}`)
 }
 
 export const changePassword = async (

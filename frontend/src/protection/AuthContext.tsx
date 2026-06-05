@@ -5,14 +5,14 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { login, signUp, getMe, logout } from "../service/authService"
+import { signIn, signUp, getMe, logout } from "../service/authService"
 import { useUserStore } from "../store/useUserStore"
 import type { ApiResponse } from "../interface/ApiResponse"
 
 type AuthContextType = {
   userId: number | null | undefined
   isLoading: boolean
-  loginUser: (email: string, password: string) => Promise<ApiResponse<any>>
+  loginUser: (login: string, password: string) => Promise<ApiResponse<any>>
   signUpUser: (data: any) => Promise<ApiResponse<any>>
   refreshUser: () => Promise<void>
   logoutUser: () => Promise<void>
@@ -48,10 +48,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const loginUser = async (
-    email: string,
+    login: string,
     password: string,
   ): Promise<ApiResponse<any>> => {
-    const res = await login({ email, password })
+    const res = await signIn({ login, password })
 
     if (res.success && res.data) {
       const user = res.data.user

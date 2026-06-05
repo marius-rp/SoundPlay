@@ -1,6 +1,5 @@
--- phpMyAdmin SQL Dump
 
--- --- CORRECTION : Désactivation temporaire des clés étrangères ---
+----------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 0;
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -9,11 +8,7 @@ SET time_zone = "+00:00";
 
 SET NAMES utf8mb4;
 
---
--- Base de données : `soundplay`
---
-
--- --------------------------------------------------------
+----------------------------------------------------------
 
 DROP TABLE IF EXISTS `musics`;
 CREATE TABLE `musics` (
@@ -26,7 +21,7 @@ CREATE TABLE `musics` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+----------------------------------------------------------
 
 DROP TABLE IF EXISTS `playlists`;
 CREATE TABLE `playlists` (
@@ -45,7 +40,7 @@ CREATE TABLE `playlists` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+----------------------------------------------------------
 
 DROP TABLE IF EXISTS `playlisttracks`;
 CREATE TABLE `playlisttracks` (
@@ -65,7 +60,7 @@ CREATE TABLE `playlisttracks` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+----------------------------------------------------------
 
 DROP TABLE IF EXISTS `proxies`;
 CREATE TABLE `proxies` (
@@ -83,7 +78,7 @@ CREATE TABLE `proxies` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+----------------------------------------------------------
 
 DROP TABLE IF EXISTS `roles`;
 CREATE TABLE `roles` (
@@ -93,7 +88,7 @@ CREATE TABLE `roles` (
   UNIQUE KEY `type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+----------------------------------------------------------
 
 DROP TABLE IF EXISTS `searchhistory`;
 CREATE TABLE `searchhistory` (
@@ -108,7 +103,7 @@ CREATE TABLE `searchhistory` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+----------------------------------------------------------
 
 DROP TABLE IF EXISTS `settings`;
 CREATE TABLE `settings` (
@@ -117,24 +112,32 @@ CREATE TABLE `settings` (
   PRIMARY KEY (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+----------------------------------------------------------
 
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `email` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `login` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `surname` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `role_id` int NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `login` (`login`),
   KEY `fk_user_role` (`role_id`),
   CONSTRAINT `fk_user_role`
     FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --- CORRECTION : Réactivation des clés étrangères ---
+----------------------------------------------------------
+
+INSERT INTO `roles` (`type`) VALUES
+  ('USER'),
+  ('ADMIN'),
+  ('SUPERVISOR');
+
+----------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;
