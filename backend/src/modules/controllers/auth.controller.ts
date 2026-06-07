@@ -5,6 +5,7 @@ import { userService } from "../services/user.service"
 import { emailService } from "../services/email.service"
 import { successResponse, errorResponse } from "../../utils/ApiResponse.helper"
 import { logger } from "../../utils/logger.helper"
+import { validatePasswordStrength } from "../../utils/password.helper"
 import { ROLES } from "../../constant"
 
 const FILE_NAME = "auth.controller.ts"
@@ -15,6 +16,11 @@ export const signUp = async (req: Request, res: Response) => {
 
     if (!login || !password || !name || !surname) {
       return errorResponse(res, 400, "Données manquantes")
+    }
+
+    const passwordCheck = validatePasswordStrength(password)
+    if (!passwordCheck.valid) {
+      return errorResponse(res, 400, passwordCheck.errors.join(" "))
     }
 
     const userExists = await userService.getByLogin(login)
@@ -343,6 +349,11 @@ export const changePassword = async (req: Request, res: Response) => {
       return errorResponse(res, 400, "Données manquantes")
     }
 
+    const passwordCheck = validatePasswordStrength(newPassword)
+    if (!passwordCheck.valid) {
+      return errorResponse(res, 400, passwordCheck.errors.join(" "))
+    }
+
     const user = await userService.getUserById(userId)
     if (!user) {
       return errorResponse(res, 404, "Utilisateur introuvable")
@@ -439,6 +450,11 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     if (!token || !newPassword) {
       return errorResponse(res, 400, "Données manquantes")
+    }
+
+    const passwordCheck = validatePasswordStrength(newPassword)
+    if (!passwordCheck.valid) {
+      return errorResponse(res, 400, passwordCheck.errors.join(" "))
     }
 
     const decoded = jwt.decode(token) as any

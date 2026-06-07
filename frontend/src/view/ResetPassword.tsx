@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import { resetPasswordViaToken } from "../service/authService"
 import { useToast } from "../context/ToastContext"
 import { Loader2, KeyRound, CheckCircle2 } from "lucide-react"
+import PasswordStrengthIndicator from "../components/ui/PasswordStrengthIndicator"
+import { validatePassword } from "../utils/passwordValidator"
 
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -23,8 +25,9 @@ const ResetPassword: React.FC = () => {
       return
     }
 
-    if (newPassword.length < 6) {
-      showToast("Le mot de passe doit contenir au moins 6 caractères.", "error")
+    const { valid, failedRules } = validatePassword(newPassword)
+    if (!valid) {
+      showToast(failedRules[0], "error")
       return
     }
 
@@ -109,11 +112,12 @@ const ResetPassword: React.FC = () => {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Minimum 6 caractères"
+                  placeholder="12 car. min, chiffre, caractère spécial"
                   disabled={loading}
                   className="w-full bg-[#3e3e3e] border border-transparent text-white px-4 py-3 rounded-md focus:outline-none focus:border-gray-500 text-sm transition"
                   required
                 />
+                <PasswordStrengthIndicator password={newPassword} />
               </div>
 
               <div>
@@ -129,6 +133,19 @@ const ResetPassword: React.FC = () => {
                   className="w-full bg-[#3e3e3e] border border-transparent text-white px-4 py-3 rounded-md focus:outline-none focus:border-gray-500 text-sm transition"
                   required
                 />
+                {confirmPassword && (
+                  <p
+                    className={`text-xs mt-1 ${
+                      newPassword === confirmPassword
+                        ? "text-[#1ed760]"
+                        : "text-red-400"
+                    }`}
+                  >
+                    {newPassword === confirmPassword
+                      ? "✓ Les mots de passe correspondent"
+                      : "✗ Les mots de passe ne correspondent pas"}
+                  </p>
+                )}
               </div>
 
               <button

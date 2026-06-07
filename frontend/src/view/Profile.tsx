@@ -25,6 +25,7 @@ import {
 } from "../components/dropdown/DropdownMenu"
 import { ROLES } from "../constant"
 import Button from "../components/buttons/Button"
+import PasswordStrengthIndicator from "../components/ui/PasswordStrengthIndicator"
 
 const Profile: React.FC = () => {
   const { user, fullName, clearUser } = useUser()
@@ -262,25 +263,62 @@ const Profile: React.FC = () => {
       >
         <form onSubmit={handleChangePassword} className="space-y-5 px-1">
           <div className="space-y-3">
-            {[
-              { label: "Mot de passe actuel", key: "oldPassword" },
-              { label: "Nouveau mot de passe", key: "newPassword" },
-              { label: "Confirmer", key: "confirmNewPassword" },
-            ].map((field) => (
-              <div key={field.key}>
-                <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">
-                  {field.label}
-                </label>
-                <input
-                  type="password"
-                  required
-                  className="w-full bg-[#282828] border-none rounded-md p-3 text-white focus:ring-1 focus:ring-[#1ed760] outline-none text-sm"
-                  onChange={(e) =>
-                    setPswData({ ...pswData, [field.key]: e.target.value })
-                  }
-                />
-              </div>
-            ))}
+            <div>
+              <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">
+                Mot de passe actuel
+              </label>
+              <input
+                type="password"
+                required
+                className="w-full bg-[#282828] border-none rounded-md p-3 text-white focus:ring-1 focus:ring-[#1ed760] outline-none text-sm"
+                onChange={(e) =>
+                  setPswData({ ...pswData, oldPassword: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">
+                Nouveau mot de passe
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="12 car. min, chiffre, caractère spécial"
+                className="w-full bg-[#282828] border-none rounded-md p-3 text-white focus:ring-1 focus:ring-[#1ed760] outline-none text-sm"
+                onChange={(e) =>
+                  setPswData({ ...pswData, newPassword: e.target.value })
+                }
+              />
+              <PasswordStrengthIndicator password={pswData.newPassword} />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">
+                Confirmer
+              </label>
+              <input
+                type="password"
+                required
+                className="w-full bg-[#282828] border-none rounded-md p-3 text-white focus:ring-1 focus:ring-[#1ed760] outline-none text-sm"
+                onChange={(e) =>
+                  setPswData({ ...pswData, confirmNewPassword: e.target.value })
+                }
+              />
+              {pswData.confirmNewPassword && (
+                <p
+                  className={`text-xs mt-1 ${
+                    pswData.newPassword === pswData.confirmNewPassword
+                      ? "text-[#1ed760]"
+                      : "text-red-400"
+                  }`}
+                >
+                  {pswData.newPassword === pswData.confirmNewPassword
+                    ? "✓ Les mots de passe correspondent"
+                    : "✗ Les mots de passe ne correspondent pas"}
+                </p>
+              )}
+            </div>
           </div>
           <Button
             type="submit"

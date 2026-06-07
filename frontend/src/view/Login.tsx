@@ -5,6 +5,8 @@ import { useToast } from "../context/ToastContext"
 import { useAuth } from "../protection/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { forgotLogin, forgotPassword } from "../service/authService"
+import PasswordStrengthIndicator from "../components/ui/PasswordStrengthIndicator"
+import { validatePassword } from "../utils/passwordValidator"
 
 const Login: React.FC = () => {
   const [mode, setMode] = useState<
@@ -43,6 +45,13 @@ const Login: React.FC = () => {
         showToast(`${res.error?.message} (Code: ${res.error?.code})`, "error")
       }
     } else if (mode === "signup") {
+      const { valid, failedRules } = validatePassword(formData.password)
+      if (!valid) {
+        showToast(failedRules[0], "error")
+        setIsLoading(false)
+        return
+      }
+
       const res = await signUpUser(formData)
 
       if (res.success) {
@@ -144,12 +153,20 @@ const Login: React.FC = () => {
               <div className="space-y-2">
                 <Input
                   type="password"
-                  placeholder="Mot de passe"
+                  placeholder={
+                    mode === "signup"
+                      ? "Mot de passe (12 car. min, chiffre, caractère spécial)"
+                      : "Mot de passe"
+                  }
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
                 />
+
+                {mode === "signup" && (
+                  <PasswordStrengthIndicator password={formData.password} />
+                )}
 
                 {mode === "login" && (
                   <div className="flex justify-between text-xs text-gray-400">
@@ -210,7 +227,7 @@ const Login: React.FC = () => {
             </p>
           )}
 
-          {mode === "forgotPassword" && (
+          {(mode === "forgotPassword" || mode === "forgotLogin") && (
             <p>
               <button
                 onClick={() => setMode("login")}

@@ -69,10 +69,18 @@ export const userService = {
 
   getByEmail: async (email: string): Promise<User | null> => {
     try {
-      const [rows]: any = await pool.query("SELECT id FROM users WHERE email = ? LIMIT 1", [email])
+      const [rows]: any = await pool.query(
+        "SELECT id, email, login FROM users WHERE email = ? LIMIT 1",
+        [email],
+      )
       return rows.length > 0 ? rows[0] : null
     } catch (error: any) {
-      logger("SYSTEM", FILE_NAME, "ERROR", `Erreur getByEmail (${email}) : ${error.message}`)
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "ERROR",
+        `Erreur getByEmail (${email}) : ${error.message}`,
+      )
       throw error
     }
   },
