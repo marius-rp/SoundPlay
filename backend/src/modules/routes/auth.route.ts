@@ -8,6 +8,9 @@ import {
   changePassword,
   requestEmailVerification,
   verifyEmail,
+  requestPasswordReset,
+  resetPassword,
+  requestLoginRecovery,
 } from "../controllers/auth.controller"
 import { authMiddleware } from "../middlewares/auth.middleware"
 
@@ -21,5 +24,8 @@ router.put("/change-password", authMiddleware, changePassword)
 router.delete("/delete-account", authMiddleware, deleteMe)
 router.post("/request-email", authMiddleware, requestEmailVerification)
 router.get("/verify-email", verifyEmail)
+router.post("/forgot-password", requestPasswordReset)
+router.post("/forgot-login", requestLoginRecovery)
+router.post("/reset-password", resetPassword)
 
 export default router

@@ -49,3 +49,22 @@ export const changePassword = async (
 ): Promise<ApiResponse<ChangePassword>> => {
   return apiRequest.put<ChangePassword>("auth/change-password", data)
 }
+
+export const forgotPassword = async (
+  email: string,
+): Promise<ApiResponse<null>> => {
+  return apiRequest.post<null>("auth/forgot-password", { email })
+}
+
+export const forgotLogin = async (
+  email: string,
+): Promise<ApiResponse<null>> => {
+  return apiRequest.post<null>("auth/forgot-login", { email })
+}
+
+export const resetPasswordViaToken = async (data: {
+  token: string
+  newPassword: string
+}): Promise<ApiResponse<null>> => {
+  return apiRequest.post<null>("auth/reset-password", data)
+}

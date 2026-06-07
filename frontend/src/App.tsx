@@ -14,6 +14,7 @@ import PlaylistView from "./view/playlist/PlaylistView"
 import { PlayerProvider } from "./context/PlayerContext"
 import { ROLES } from "./constant"
 import VerifyEmail from "./view/VerifyEmail"
+import ResetPassword from "./view/ResetPassword"
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 element={
                   <ProtectedRoute>

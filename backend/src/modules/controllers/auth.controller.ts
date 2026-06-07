@@ -377,3 +377,136 @@ export const changePassword = async (req: Request, res: Response) => {
     return errorResponse(res, 500, "Erreur interne du serveur")
   }
 }
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      return errorResponse(res, 400, "E-mail requis")
+    }
+
+    const userMinimal = await userService.getByEmail(email)
+    if (!userMinimal) {
+      return successResponse(res, 200, {
+        message:
+          "Si un compte est associé à cet e-mail, un message de réinitialisation vous a été envoyé.",
+      })
+    }
+
+    const user = await userService.getUserById(userMinimal.id)
+
+    const secret = (process.env.JWT_SECRET as string) + user.password
+
+    const token = jwt.sign({ id: user.id, email: user.email }, secret, {
+      expiresIn: "15m",
+    })
+
+    const resetLink = `${process.env.NODE_FRONTEND}/reset-password?token=${token}`
+
+    const emailSent = await emailService.sendResetPasswordEmail(
+      user.email,
+      user.login,
+      resetLink,
+    )
+
+    if (!emailSent) {
+      return errorResponse(
+        res,
+        500,
+        "Erreur lors de l'envoi de l'e-mail. Réessayez plus tard.",
+      )
+    }
+
+    logger(
+      "SYSTEM",
+      FILE_NAME,
+      "INFO",
+      `Demande de reset MDP pour l'utilisateur ID ${user.id}`,
+    )
+    return successResponse(res, 200, {
+      message: "Un e-mail de réinitialisation vous a été envoyé !",
+    })
+  } catch (error: any) {
+    logger("SYSTEM", FILE_NAME, "ERROR", error)
+    return errorResponse(res, 500, "Erreur interne du serveur")
+  }
+}
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword } = req.body
+
+    if (!token || !newPassword) {
+      return errorResponse(res, 400, "Données manquantes")
+    }
+
+    const decoded = jwt.decode(token) as any
+    if (!decoded || !decoded.id) {
+      return errorResponse(res, 400, "Le lien est invalide ou expiré.")
+    }
+
+    const user = await userService.getUserById(decoded.id)
+    if (!user) {
+      return errorResponse(res, 404, "Utilisateur introuvable.")
+    }
+
+    const secret = (process.env.JWT_SECRET as string) + user.password
+    try {
+      jwt.verify(token, secret)
+    } catch (err) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "WARN",
+        `Tentative de reset MDP échouée avec token expiré/déjà utilisé pour ID ${user.id}`,
+      )
+      return errorResponse(
+        res,
+        400,
+        "Le lien de réinitialisation est invalide ou a expiré.",
+      )
+    }
+
+    const hashedNewPassword = await argon2.hash(newPassword)
+    const success = await userService.changePassword(user.id, hashedNewPassword)
+
+    if (success) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "INFO",
+        `Mot de passe réinitialisé avec succès via e-mail pour ID ${user.id}`,
+      )
+      return successResponse(res, 200, {
+        message: "Votre mot de passe a bien été réinitialisé !",
+      })
+    }
+
+    throw new Error("Échec de la mise à jour en base de données")
+  } catch (error: any) {
+    logger("SYSTEM", FILE_NAME, "ERROR", error)
+    return errorResponse(res, 500, "Erreur interne lors de la réinitialisation")
+  }
+}
+
+export const requestLoginRecovery = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body
+    if (!email) return errorResponse(res, 400, "E-mail requis")
+
+    const user = await userService.getByEmail(email)
+
+    if (user) {
+      await emailService.sendRecoverLoginEmail(String(user.email), user.login)
+    }
+
+    return successResponse(res, 200, {
+      message:
+        "Si un compte est associé à cet e-mail, vous recevrez votre identifiant par message.",
+    })
+  } catch (error: any) {
+    logger("SYSTEM", "auth.controller.ts", "ERROR", error)
+    return errorResponse(res, 500, "Erreur lors de la récupération")
+  }
+}
