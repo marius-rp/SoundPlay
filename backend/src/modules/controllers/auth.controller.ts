@@ -13,23 +13,17 @@ const FILE_NAME = "auth.controller.ts"
 export const signUp = async (req: Request, res: Response) => {
   try {
     const { login, password, name, surname } = req.body
-
-    if (!login || !password || !name || !surname) {
+    if (!login || !password || !name || !surname)
       return errorResponse(res, 400, "Données manquantes")
-    }
 
     const passwordCheck = validatePasswordStrength(password)
-    if (!passwordCheck.valid) {
+    if (!passwordCheck.valid)
       return errorResponse(res, 400, passwordCheck.errors.join(" "))
-    }
 
     const userExists = await userService.getByLogin(login)
-    if (userExists) {
-      return errorResponse(res, 409, "Ce login est déjà utilisé")
-    }
+    if (userExists) return errorResponse(res, 409, "Ce login est déjà utilisé")
 
     const hashedPassword = await argon2.hash(password)
-
     const newUserId = await userService.create({
       login,
       password: hashedPassword,
@@ -43,14 +37,14 @@ export const signUp = async (req: Request, res: Response) => {
         "SYSTEM",
         FILE_NAME,
         "INFO",
-        `Nouvel utilisateur inscrit : ${login} (ID: ${newUserId})`,
+        `Nouvel utilisateur inscrit (en attente) : ${login} (ID: ${newUserId})`,
       )
       return successResponse(res, 201, {
         id: newUserId,
-        message: "Utilisateur créé !",
+        message:
+          "Compte créé ! Il sera activé par un administrateur avant que vous puissiez vous connecter.",
       })
     }
-
     throw new Error("Échec de la création en base de données")
   } catch (error: any) {
     logger("SYSTEM", FILE_NAME, "ERROR", error)
@@ -61,10 +55,8 @@ export const signUp = async (req: Request, res: Response) => {
 export const signIn = async (req: Request, res: Response) => {
   try {
     const { login, password } = req.body
-
-    if (!login || !password) {
+    if (!login || !password)
       return errorResponse(res, 400, "Login et mot de passe requis")
-    }
 
     const user = await userService.getByLogin(login)
 
@@ -80,6 +72,33 @@ export const signIn = async (req: Request, res: Response) => {
         `Tentative de connexion échouée pour : ${login}`,
       )
       return errorResponse(res, 401, "Identifiants incorrects")
+    }
+
+    if (user.status === 0) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "WARN",
+        `Connexion refusée (compte en attente) : ${login}`,
+      )
+      return errorResponse(
+        res,
+        403,
+        "Votre compte est en attente de validation par un administrateur.",
+      )
+    }
+    if (user.status === 2) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "WARN",
+        `Connexion refusée (compte banni) : ${login}`,
+      )
+      return errorResponse(
+        res,
+        403,
+        "Votre compte a été suspendu. Contactez un administrateur.",
+      )
     }
 
     const token = jwt.sign(
@@ -103,7 +122,6 @@ export const signIn = async (req: Request, res: Response) => {
 
     const { password: _, ...userPublic } = user
     logger(user.id, FILE_NAME, "INFO", `Utilisateur connecté : ${login}`)
-
     return successResponse(res, 200, {
       user: userPublic,
       message: "Connexion réussie",
@@ -121,21 +139,10 @@ export const signIn = async (req: Request, res: Response) => {
 export const getMe = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id || "SYSTEM"
   try {
-    if (!userId || userId === "SYSTEM") {
+    if (!userId || userId === "SYSTEM")
       return errorResponse(res, 401, "Non authentifié")
-    }
-
     const user = await userService.getUserById(userId)
-    if (!user) {
-      logger(
-        userId,
-        FILE_NAME,
-        "WARN",
-        `Requête getMe : Utilisateur ID ${userId} introuvable`,
-      )
-      return errorResponse(res, 404, "Utilisateur introuvable")
-    }
-
+    if (!user) return errorResponse(res, 404, "Utilisateur introuvable")
     const { password: _, ...userPublic } = user
     return successResponse(res, 200, userPublic)
   } catch (error: any) {
@@ -152,7 +159,6 @@ export const logout = async (req: Request, res: Response) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.SAME_SITE as boolean | "lax" | "strict" | "none",
     })
-
     logger(userId, FILE_NAME, "INFO", "Déconnexion réussie")
     return successResponse(res, 200, { message: "Déconnexion réussie" })
   } catch (error: any) {
@@ -164,28 +170,15 @@ export const logout = async (req: Request, res: Response) => {
 export const deleteMe = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id || "SYSTEM"
   try {
-    if (!userId || userId === "SYSTEM") {
+    if (!userId || userId === "SYSTEM")
       return errorResponse(res, 401, "Non authentifié")
-    }
-
     const isDeleted = await userService.delete(userId)
-
-    if (!isDeleted) {
-      logger(
-        userId,
-        FILE_NAME,
-        "WARN",
-        `Tentative de suppression : Utilisateur ID ${userId} introuvable`,
-      )
-      return errorResponse(res, 404, "Utilisateur introuvable")
-    }
-
+    if (!isDeleted) return errorResponse(res, 404, "Utilisateur introuvable")
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.SAME_SITE as boolean | "lax" | "strict" | "none",
     })
-
     logger(
       userId,
       FILE_NAME,
@@ -204,52 +197,39 @@ export const deleteMe = async (req: Request, res: Response) => {
 export const requestEmailVerification = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id
   const userLogin = (req as any).user?.login
-
   try {
     const { email } = req.body
-
-    if (!email) {
-      return errorResponse(res, 400, "E-mail requis")
-    }
-
+    if (!email) return errorResponse(res, 400, "E-mail requis")
     const emailExists = await userService.getByEmail(email)
-    if (emailExists) {
+    if (emailExists)
       return errorResponse(
         res,
         400,
         "Cet e-mail est déjà lié à un autre compte.",
       )
-    }
-
     const token = jwt.sign(
       { id: userId, newEmail: email },
       process.env.JWT_SECRET as string,
       { expiresIn: "15m" },
     )
-
     const verificationLink = `${process.env.NODE_FRONTEND}/verify-email?token=${token}`
-
     const emailSent = await emailService.sendVerificationEmail(
       email,
       userLogin,
       verificationLink,
     )
-
-    if (!emailSent) {
+    if (!emailSent)
       return errorResponse(
         res,
         500,
-        "Le service de messagerie rencontre un problème. Réessayez plus tard.",
+        "Le service de messagerie rencontre un problème.",
       )
-    }
-
     logger(
       userId,
       FILE_NAME,
       "INFO",
-      `E-mail de vérification envoyé à ${email}. Lien : ${verificationLink}`,
+      `E-mail de vérification envoyé à ${email}`,
     )
-
     return successResponse(res, 200, {
       message: "Un e-mail de confirmation vous a été envoyé !",
     })
@@ -262,71 +242,44 @@ export const requestEmailVerification = async (req: Request, res: Response) => {
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
     const { token } = req.query
-
-    if (!token || typeof token !== "string") {
+    if (!token || typeof token !== "string")
       return errorResponse(res, 400, "Token manquant ou invalide")
-    }
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any
     try {
       const alreadyTaken = await userService.getByEmail(decoded.newEmail)
-      if (alreadyTaken && alreadyTaken.id !== decoded.id) {
+      if (alreadyTaken && alreadyTaken.id !== decoded.id)
         return errorResponse(
           res,
           400,
           "Cet e-mail vient d'être pris par un autre utilisateur.",
         )
-      }
     } catch (err) {
-      logger(
-        "SYSTEM",
-        FILE_NAME,
-        "WARN",
-        "Tentative de validation échouée (Token invalide ou expiré)",
-      )
       return errorResponse(
         res,
         400,
         "Le lien de validation est invalide ou a expiré.",
       )
     }
-
     const { id, newEmail } = decoded
-
-    if (!id || !newEmail) {
-      return errorResponse(res, 400, "Token mal formé")
-    }
-
+    if (!id || !newEmail) return errorResponse(res, 400, "Token mal formé")
     const currentUser = await userService.getUserById(id)
-    if (currentUser && currentUser.email === newEmail) {
-      logger(
-        "SYSTEM",
-        FILE_NAME,
-        "INFO",
-        `L'e-mail est déjà validé pour l'utilisateur ID ${id}. (Ignoré)`,
-      )
+    if (currentUser && currentUser.email === newEmail)
       return successResponse(res, 200, {
         message: "Votre e-mail a déjà été lié à votre compte !",
       })
-    }
-
     const updateResponse = await userService.updateEmail(id, newEmail)
-
-    if (!updateResponse.success) {
+    if (!updateResponse.success)
       return errorResponse(
         res,
         400,
         updateResponse.error?.message || "Erreur lors de la mise à jour",
       )
-    }
-
     logger(
       "SYSTEM",
       FILE_NAME,
       "INFO",
-      `E-mail validé et lié avec succès pour l'utilisateur ID ${id}.`,
+      `E-mail validé pour l'utilisateur ID ${id}`,
     )
-
     return successResponse(res, 200, {
       message: "Votre e-mail a bien été lié à votre compte !",
     })
@@ -344,45 +297,23 @@ export const changePassword = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id || "SYSTEM"
   try {
     const { oldPassword, newPassword } = req.body
-
-    if (!oldPassword || !newPassword) {
+    if (!oldPassword || !newPassword)
       return errorResponse(res, 400, "Données manquantes")
-    }
-
     const passwordCheck = validatePasswordStrength(newPassword)
-    if (!passwordCheck.valid) {
+    if (!passwordCheck.valid)
       return errorResponse(res, 400, passwordCheck.errors.join(" "))
-    }
-
     const user = await userService.getUserById(userId)
-    if (!user) {
-      return errorResponse(res, 404, "Utilisateur introuvable")
-    }
-
+    if (!user) return errorResponse(res, 404, "Utilisateur introuvable")
     const isOldCorrect = await argon2.verify(user.password, oldPassword)
-    if (!isOldCorrect) {
-      logger(
-        userId,
-        FILE_NAME,
-        "WARN",
-        "Échec changement de mot de passe : Ancien mot de passe incorrect",
-      )
+    if (!isOldCorrect)
       return errorResponse(res, 401, "L'ancien mot de passe est incorrect")
-    }
-
     const hashedNewPassword = await argon2.hash(newPassword)
     const success = await userService.changePassword(userId, hashedNewPassword)
-
-    if (success) {
-      logger(userId, FILE_NAME, "INFO", "Mot de passe modifié avec succès")
+    if (success)
       return successResponse(res, 200, {
         message: "Mot de passe modifié avec succès",
       })
-    }
-
-    throw new Error(
-      "Échec de la mise à jour du mot de passe en base de données",
-    )
+    throw new Error("Échec de la mise à jour du mot de passe")
   } catch (error: any) {
     logger(userId, FILE_NAME, "ERROR", error)
     return errorResponse(res, 500, "Erreur interne du serveur")
@@ -392,43 +323,26 @@ export const changePassword = async (req: Request, res: Response) => {
 export const requestPasswordReset = async (req: Request, res: Response) => {
   try {
     const { email } = req.body
-
-    if (!email) {
-      return errorResponse(res, 400, "E-mail requis")
-    }
-
+    if (!email) return errorResponse(res, 400, "E-mail requis")
     const userMinimal = await userService.getByEmail(email)
-    if (!userMinimal) {
+    if (!userMinimal)
       return successResponse(res, 200, {
         message:
           "Si un compte est associé à cet e-mail, un message de réinitialisation vous a été envoyé.",
       })
-    }
-
     const user = await userService.getUserById(userMinimal.id)
-
     const secret = (process.env.JWT_SECRET as string) + user.password
-
     const token = jwt.sign({ id: user.id, email: user.email }, secret, {
       expiresIn: "15m",
     })
-
     const resetLink = `${process.env.NODE_FRONTEND}/reset-password?token=${token}`
-
     const emailSent = await emailService.sendResetPasswordEmail(
       user.email,
       user.login,
       resetLink,
     )
-
-    if (!emailSent) {
-      return errorResponse(
-        res,
-        500,
-        "Erreur lors de l'envoi de l'e-mail. Réessayez plus tard.",
-      )
-    }
-
+    if (!emailSent)
+      return errorResponse(res, 500, "Erreur lors de l'envoi de l'e-mail.")
     logger(
       "SYSTEM",
       FILE_NAME,
@@ -447,58 +361,32 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token, newPassword } = req.body
-
-    if (!token || !newPassword) {
+    if (!token || !newPassword)
       return errorResponse(res, 400, "Données manquantes")
-    }
-
     const passwordCheck = validatePasswordStrength(newPassword)
-    if (!passwordCheck.valid) {
+    if (!passwordCheck.valid)
       return errorResponse(res, 400, passwordCheck.errors.join(" "))
-    }
-
     const decoded = jwt.decode(token) as any
-    if (!decoded || !decoded.id) {
+    if (!decoded || !decoded.id)
       return errorResponse(res, 400, "Le lien est invalide ou expiré.")
-    }
-
     const user = await userService.getUserById(decoded.id)
-    if (!user) {
-      return errorResponse(res, 404, "Utilisateur introuvable.")
-    }
-
+    if (!user) return errorResponse(res, 404, "Utilisateur introuvable.")
     const secret = (process.env.JWT_SECRET as string) + user.password
     try {
       jwt.verify(token, secret)
     } catch (err) {
-      logger(
-        "SYSTEM",
-        FILE_NAME,
-        "WARN",
-        `Tentative de reset MDP échouée avec token expiré/déjà utilisé pour ID ${user.id}`,
-      )
       return errorResponse(
         res,
         400,
         "Le lien de réinitialisation est invalide ou a expiré.",
       )
     }
-
     const hashedNewPassword = await argon2.hash(newPassword)
     const success = await userService.changePassword(user.id, hashedNewPassword)
-
-    if (success) {
-      logger(
-        "SYSTEM",
-        FILE_NAME,
-        "INFO",
-        `Mot de passe réinitialisé avec succès via e-mail pour ID ${user.id}`,
-      )
+    if (success)
       return successResponse(res, 200, {
         message: "Votre mot de passe a bien été réinitialisé !",
       })
-    }
-
     throw new Error("Échec de la mise à jour en base de données")
   } catch (error: any) {
     logger("SYSTEM", FILE_NAME, "ERROR", error)
@@ -510,13 +398,9 @@ export const requestLoginRecovery = async (req: Request, res: Response) => {
   try {
     const { email } = req.body
     if (!email) return errorResponse(res, 400, "E-mail requis")
-
     const user = await userService.getByEmail(email)
-
-    if (user) {
+    if (user)
       await emailService.sendRecoverLoginEmail(String(user.email), user.login)
-    }
-
     return successResponse(res, 200, {
       message:
         "Si un compte est associé à cet e-mail, vous recevrez votre identifiant par message.",

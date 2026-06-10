@@ -11,6 +11,7 @@ export interface User {
   role?: Role
   role_id?: number
   created_at: Date
+  status: 0 | 1 | 2
 }
 
 export interface UserRow extends User, RowDataPacket {}

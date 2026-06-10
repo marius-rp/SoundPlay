@@ -3,7 +3,7 @@ import { type ApiResponse } from "../interface/ApiResponse"
 
 async function coreRequest<T>(
   endpoint: string,
-  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
   body?: any,
 ): Promise<ApiResponse<T>> {
   const config: RequestInit = {
@@ -57,6 +57,8 @@ export const apiRequest = {
     coreRequest<T>(endpoint, "POST", body),
   put: <T>(endpoint: string, body: any) =>
     coreRequest<T>(endpoint, "PUT", body),
+  patch: <T>(endpoint: string, body: any) =>
+    coreRequest<T>(endpoint, "PATCH", body),
   delete: <T>(endpoint: string, body?: any) =>
     coreRequest<T>(endpoint, "DELETE", body),
 }

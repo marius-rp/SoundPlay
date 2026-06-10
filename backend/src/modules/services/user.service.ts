@@ -3,6 +3,7 @@ import pool from "../config/db"
 import { User, UserRow } from "../types/User"
 import { ApiResponse } from "../types/ApiResponse"
 import { logger } from "../../utils/logger.helper"
+import { USER_STATUS } from "../../constant"
 
 const FILE_NAME = "user.service.ts"
 
@@ -11,14 +12,14 @@ export const userService = {
     const { login, password, name, surname, role_id } = userData
     try {
       const [result] = await pool.query<ResultSetHeader>(
-        "INSERT INTO users (login, password, name, surname, role_id) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO users (login, password, name, surname, role_id, status) VALUES (?, ?, ?, ?, ?, 0)",
         [login, password, name, surname, role_id],
       )
       logger(
         "SYSTEM",
         FILE_NAME,
         "INFO",
-        `Utilisateur créé en base de données : ${login}`,
+        `Utilisateur créé en base de données (en attente) : ${login}`,
       )
       return result.insertId
     } catch (error: any) {
@@ -35,7 +36,11 @@ export const userService = {
   getByLogin: async (login: string): Promise<User | null> => {
     try {
       const [rows] = await pool.query<UserRow[]>(
-        "SELECT u.id, u.login, u.password, u.name, u.surname, JSON_OBJECT('id', r.id, 'type', r.type) AS role FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.login = ? LIMIT 1",
+        `SELECT u.id, u.login, u.password, u.name, u.surname, u.status,
+         JSON_OBJECT('id', r.id, 'type', r.type) AS role
+         FROM users u
+         LEFT JOIN roles r ON u.role_id = r.id
+         WHERE u.login = ? LIMIT 1`,
         [login],
       )
       return rows.length > 0 ? rows[0] : null
@@ -138,9 +143,62 @@ export const userService = {
     }
   },
 
+  updateStatus: async (
+    userId: number,
+    status: typeof USER_STATUS[keyof typeof USER_STATUS],
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const [result] = await pool.query<ResultSetHeader>(
+        "UPDATE users SET status = ? WHERE id = ?",
+        [status, userId],
+      )
+      if (result.affectedRows === 0) {
+        return {
+          success: false,
+          data: null,
+          error: {
+            code: "USER_NOT_FOUND",
+            message: "Utilisateur introuvable.",
+          },
+        }
+      }
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "INFO",
+        `Statut de l'utilisateur ID ${userId} mis à jour : ${status}`,
+      )
+      return { success: true, data: null, error: null }
+    } catch (error: any) {
+      logger(
+        "SYSTEM",
+        FILE_NAME,
+        "ERROR",
+        `Erreur updateStatus (${userId}) : ${error.message}`,
+      )
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: "DB_UPDATE_ERROR",
+          message: "Impossible de mettre à jour le statut.",
+        },
+      }
+    }
+  },
+
   getAllUsers: async (): Promise<ApiResponse<any[]>> => {
     try {
-      const sql = `SELECT u.id, u.login, u.name, u.surname, JSON_OBJECT('id', r.id, 'type', r.type) AS role, u.created_at FROM users u INNER JOIN roles r ON u.role_id = r.id ORDER BY u.created_at DESC`
+      const sql = `
+        SELECT u.id, u.login, u.name, u.surname, u.status,
+               JSON_OBJECT('id', r.id, 'type', r.type) AS role,
+               u.created_at
+        FROM users u
+        INNER JOIN roles r ON u.role_id = r.id
+        ORDER BY
+          FIELD(u.status, 'pending', 'active', 'banned'),
+          u.created_at DESC
+      `
       const [rows]: any = await pool.query(sql)
       return { success: true, data: rows, error: null }
     } catch (error: any) {
@@ -168,15 +226,11 @@ export const userService = {
     try {
       const sql = `UPDATE users SET email = ? WHERE id = ?`
       const [result]: any = await pool.query(sql, [email, userId])
-
       if (result.affectedRows === 0) {
         return {
           success: false,
           data: null,
-          error: {
-            code: "USER_NOT_FOUND",
-            message: "Utilisateur non trouvé.",
-          },
+          error: { code: "USER_NOT_FOUND", message: "Utilisateur non trouvé." },
         }
       }
       logger(
@@ -206,35 +260,31 @@ export const userService = {
 
   updateUser: async (
     userId: number,
-    data: { name: string; surname: string; login: string; role_id: number },
+    data: {
+      name: string
+      surname: string
+      login: string
+      role_id: number
+      status: typeof USER_STATUS[keyof typeof USER_STATUS],
+    },
   ): Promise<ApiResponse<null>> => {
     try {
-      const { name, surname, login, role_id } = data
-      const sql = `UPDATE users SET name = ?, surname = ?, login = ?, role_id = ? WHERE id = ?`
-      const [result]: any = await pool.query(sql, [
-        name,
-        surname,
-        login,
-        role_id,
-        userId,
-      ])
-
+      const { name, surname, login, role_id, status } = data
+      const [result]: any = await pool.query(
+        `UPDATE users SET name = ?, surname = ?, login = ?, role_id = ?, status = ? WHERE id = ?`,
+        [name, surname, login, role_id, status, userId],
+      )
       if (result.affectedRows === 0) {
         return {
           success: false,
           data: null,
           error: {
             code: "USER_NOT_FOUND",
-            message: "Utilisateur non trouvé ou aucune modification effectuée.",
+            message: "Utilisateur non trouvé ou aucune modification.",
           },
         }
       }
-      logger(
-        "SYSTEM",
-        FILE_NAME,
-        "INFO",
-        `Utilisateur ID ${userId} mis à jour (Login: ${login}, RoleID: ${role_id})`,
-      )
+      logger("SYSTEM", FILE_NAME, "INFO", `Utilisateur ID ${userId} mis à jour`)
       return { success: true, data: null, error: null }
     } catch (error: any) {
       logger(
@@ -256,13 +306,18 @@ export const userService = {
 
   deleteUser: async (userId: number): Promise<ApiResponse<null>> => {
     try {
-      await pool.query(`DELETE FROM users WHERE id = ?`, [userId])
+      await pool.query(
+        `UPDATE users SET status = ${USER_STATUS.DELETE} WHERE id = ?`,
+        [userId],
+      )
+
       logger(
         "SYSTEM",
         FILE_NAME,
         "INFO",
-        `Utilisateur ID ${userId} supprimé de la base`,
+        `Statut de l'utilisateur ID ${userId} passé en "Supprimé" (soft delete)`,
       )
+
       return { success: true, data: null, error: null }
     } catch (error: any) {
       logger(
@@ -271,11 +326,12 @@ export const userService = {
         "ERROR",
         `Erreur deleteUser (${userId}): ${error.message}`,
       )
+
       return {
         success: false,
         data: null,
         error: {
-          code: "DB_DELETE_ERROR",
+          code: "DB_UPDATE_ERROR",
           message: "Impossible de supprimer l'utilisateur.",
         },
       }

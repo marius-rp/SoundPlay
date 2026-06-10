@@ -6,6 +6,7 @@ import {
   errorResponse,
 } from "../../../utils/ApiResponse.helper"
 import { logger } from "../../../utils/logger.helper"
+import { USER_STATUS } from "../../../constant"
 
 const FILE_NAME = "admin-user.controller.ts"
 
@@ -13,15 +14,8 @@ export const getUsersList = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id || "SYSTEM"
   try {
     const result = await userService.getAllUsers()
-    if (!result.success) {
-      logger(
-        userId,
-        FILE_NAME,
-        "WARN",
-        `Échec récup utilisateurs: ${result.error?.message}`,
-      )
+    if (!result.success)
       return errorResponse(res, 500, result.error?.message || "Erreur users")
-    }
     return successResponse(res, 200, result.data)
   } catch (error: any) {
     logger(userId, FILE_NAME, "ERROR", error)
@@ -31,27 +25,16 @@ export const getUsersList = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   const adminId = (req as any).user?.id || "SYSTEM"
-
   try {
     const { login, password, name, surname, role_id } = req.body
-
-    if (!login || !password || !name || !surname || !role_id) {
+    if (!login || !password || !name || !surname || !role_id)
       return errorResponse(res, 400, "Tous les champs sont requis.")
-    }
 
     const userExists = await userService.getByLogin(login)
-    if (userExists) {
-      logger(
-        adminId,
-        FILE_NAME,
-        "WARN",
-        `Tentative de création avec un login existant : ${login}`,
-      )
+    if (userExists)
       return errorResponse(res, 409, "Cet login est déjà utilisé.")
-    }
 
     const hashedPassword = await argon2.hash(password)
-
     const newUserId = await userService.create({
       login,
       password: hashedPassword,
@@ -65,14 +48,13 @@ export const createUser = async (req: Request, res: Response) => {
         adminId,
         FILE_NAME,
         "INFO",
-        `Nouvel utilisateur créé par l'admin : ${login} (ID: ${newUserId}, Rôle: ${role_id})`,
+        `Nouvel utilisateur créé par l'admin : ${login} (ID: ${newUserId})`,
       )
       return successResponse(res, 201, {
         id: newUserId,
         message: "Utilisateur créé avec succès.",
       })
     }
-
     throw new Error("Échec de la création en base de données.")
   } catch (error: any) {
     logger(adminId, FILE_NAME, "ERROR", error)
@@ -87,15 +69,14 @@ export const createUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const adminId = (req as any).user?.id || "SYSTEM"
   const targetUserId = Number(req.params.id)
-  const { name, surname, login, role_id } = req.body
+  const { name, surname, login, role_id, status } = req.body
 
-  if (!name || !surname || !login || role_id === undefined) {
+  if (!name || !surname || !login || !role_id || !status === undefined)
     return errorResponse(
       res,
       400,
-      "Tous les champs (nom, prénom, login, rôle) sont requis.",
+      "Tous les champs (nom, prénom, login, rôle, statut) sont requis.",
     )
-  }
 
   try {
     const result = await userService.updateUser(targetUserId, {
@@ -103,15 +84,9 @@ export const updateUser = async (req: Request, res: Response) => {
       surname,
       login,
       role_id: Number(role_id),
+      status: status as typeof USER_STATUS[keyof typeof USER_STATUS],
     })
-
     if (!result.success) {
-      logger(
-        adminId,
-        FILE_NAME,
-        "WARN",
-        `Échec modification utilisateur ${targetUserId}: ${result.error?.message}`,
-      )
       const statusCode = result.error?.code === "USER_NOT_FOUND" ? 404 : 500
       return errorResponse(
         res,
@@ -119,7 +94,6 @@ export const updateUser = async (req: Request, res: Response) => {
         result.error?.message || "Erreur lors de la modification",
       )
     }
-
     logger(
       adminId,
       FILE_NAME,
@@ -139,19 +113,53 @@ export const updateUser = async (req: Request, res: Response) => {
   }
 }
 
+export const updateUserStatus = async (req: Request, res: Response) => {
+  const adminId = (req as any).user?.id || "SYSTEM"
+  const targetUserId = Number(req.params.id)
+  const { status } = req.body
+
+  if (!Object.values(USER_STATUS).includes(status))
+    return errorResponse(
+      res,
+      400,
+      `Statut invalide. Valeurs acceptées : ${Object.values(USER_STATUS).join(", ")}.`,
+    )
+
+  try {
+    const result = await userService.updateStatus(targetUserId, status)
+    if (!result.success) {
+      const statusCode = result.error?.code === "USER_NOT_FOUND" ? 404 : 500
+      return errorResponse(
+        res,
+        statusCode,
+        result.error?.message || "Erreur lors de la mise à jour du statut",
+      )
+    }
+    logger(
+      adminId,
+      FILE_NAME,
+      "INFO",
+      `Statut de l'utilisateur ${targetUserId} changé en "${status}" par l'admin ${adminId}`,
+    )
+    return successResponse(res, 200, {
+      message: `Statut mis à jour : ${status}`,
+    })
+  } catch (error: any) {
+    logger(adminId, FILE_NAME, "ERROR", error)
+    return errorResponse(
+      res,
+      500,
+      "Erreur interne lors de la mise à jour du statut.",
+    )
+  }
+}
+
 export const deleteUser = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id || "SYSTEM"
   try {
     const result = await userService.deleteUser(Number(req.params.id))
-    if (!result.success) {
-      logger(
-        userId,
-        FILE_NAME,
-        "WARN",
-        `Échec suppression utilisateur ${req.params.id}: ${result.error?.message}`,
-      )
+    if (!result.success)
       return errorResponse(res, 500, result.error?.message || "Erreur")
-    }
     logger(userId, FILE_NAME, "INFO", `Utilisateur ${req.params.id} supprimé`)
     return successResponse(res, 200, { message: "Utilisateur supprimé" })
   } catch (error: any) {

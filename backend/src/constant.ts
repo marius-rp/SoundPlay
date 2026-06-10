@@ -28,3 +28,9 @@ export const ROLES = {
   ADMIN: 2,
   SUPERVISOR: 3,
 } as const
+
+export const USER_STATUS = {
+  PENDING: 0,
+  ACTIVE: 1,
+  DELETE: 2,
+} as const

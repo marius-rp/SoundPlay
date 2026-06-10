@@ -55,7 +55,10 @@ const Login: React.FC = () => {
       const res = await signUpUser(formData)
 
       if (res.success) {
-        showToast("Compte créé ! Veuillez vous connecter.", "success")
+        showToast(
+          "Compte créé ! Un administrateur doit valider votre compte avant que vous puissiez vous connecter.",
+          "success",
+        )
         setMode("login")
         setFormData((prev) => ({
           ...prev,
