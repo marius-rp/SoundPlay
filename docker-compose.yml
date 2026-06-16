@@ -37,6 +37,7 @@ services:
       context: ./backend
     container_name: soundplay_backend
     restart: unless-stopped
+    command: sh -c "chmod +x /app/yt-dlp && npm run dev"
     ports:
       - "3000:3000"
     depends_on:
