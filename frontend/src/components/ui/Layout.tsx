@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Outlet, useNavigate, useLocation } from "react-router-dom"
 import {
   Home as HomeIcon,
@@ -31,6 +31,11 @@ const Layout: React.FC = () => {
   const [isDownloadsExpanded, setIsDownloadsExpanded] = useState(false)
 
   const isActive = (path: string) => location.pathname.includes(path)
+
+  useEffect(() => {
+    const el = document.getElementById("main-container")
+    if (el) el.scrollTop = 0
+  }, [location.pathname])
 
   return (
     <div className="flex flex-col h-screen bg-black text-white overflow-hidden relative">
@@ -75,21 +80,21 @@ const Layout: React.FC = () => {
                     {index === 0 && (
                       <span className="text-[#1db954] text-[9px] mt-0.5 font-semibold">
                         Ajout en cours...
-                    </span>
+                      </span>
                     )}
                   </div>
 
                   {index > 0 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      cancelDownload(dl.id)
-                    }}
-                    className="text-gray-500 hover:text-red-500 transition-colors p-1"
-                    title="Annuler"
-                  >
-                    <XIcon size={16} />
-                  </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        cancelDownload(dl.id)
+                      }}
+                      className="text-gray-500 hover:text-red-500 transition-colors p-1"
+                      title="Annuler"
+                    >
+                      <XIcon size={16} />
+                    </button>
                   )}
                 </div>
               ))}
@@ -199,21 +204,21 @@ const Layout: React.FC = () => {
                           {index === 0 && (
                             <span className="text-[#1db954] text-[9px] mt-0.5 font-semibold">
                               Ajout en cours...
-                          </span>
+                            </span>
                           )}
                         </div>
 
                         {index > 0 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            cancelDownload(dl.id)
-                          }}
-                          className="text-gray-500 hover:text-red-500 transition-colors p-1"
-                          title="Annuler"
-                        >
-                          <XIcon size={14} />
-                        </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              cancelDownload(dl.id)
+                            }}
+                            className="text-gray-500 hover:text-red-500 transition-colors p-1"
+                            title="Annuler"
+                          >
+                            <XIcon size={14} />
+                          </button>
                         )}
                       </div>
                     ))}
@@ -248,7 +253,10 @@ const Layout: React.FC = () => {
           </div>
         </aside>
 
-        <main className="flex-1 overflow-y-auto bg-[#121212] relative">
+        <main
+          id="main-container"
+          className="flex-1 overflow-y-auto bg-[#121212] relative"
+        >
           <Outlet />
         </main>
       </div>
@@ -283,6 +291,17 @@ const Layout: React.FC = () => {
           <User size={24} />
           <span className="text-[10px] font-medium mt-1">Profil</span>
         </div>
+
+        {/* ← Ajout Admin */}
+        {(isAdmin || isSupervisor) && (
+          <div
+            onClick={() => navigate("/Admin")}
+            className={`flex flex-col items-center cursor-pointer transition-colors ${isActive("/Admin") ? "text-white" : "text-gray-400 hover:text-white"}`}
+          >
+            <ShieldUser size={24} />
+            <span className="text-[10px] font-medium mt-1">Admin</span>
+          </div>
+        )}
       </nav>
     </div>
   )

@@ -13,17 +13,6 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-full bg-linear-to-b from-[#222222] to-[#121212] pb-24">
-      <header className="sticky top-0 z-10 p-6 flex justify-between items-center bg-[#121212]/40 backdrop-blur-md transition-all">
-        <div className="flex space-x-4">
-          <button className="w-8 h-8 flex items-center justify-center bg-black/60 rounded-full hover:bg-black/80 transition">
-            <span className="text-gray-300">{"<"}</span>
-          </button>
-          <button className="w-8 h-8 flex items-center justify-center bg-black/60 rounded-full hover:bg-black/80 transition">
-            <span className="text-gray-300">{">"}</span>
-          </button>
-        </div>
-      </header>
-
       <section className="px-4 md:px-8 pt-2">
         <h1 className="text-3xl font-black mb-6 tracking-tight">Bonjour</h1>
 

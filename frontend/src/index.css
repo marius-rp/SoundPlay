@@ -1,1 +1,17 @@
-@import "tailwindcss"
+@import "tailwindcss";
+
+html,
+body {
+  touch-action: manipulation;
+}
+
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+#root {
+  height: 100%;
+  overflow: hidden;
+}
