@@ -28,7 +28,7 @@ export const playlistService = {
         LEFT JOIN users u ON p.user_id = u.id
         WHERE p.user_id = ?
         GROUP BY p.id
-        ORDER BY p.created_at DESC
+        ORDER BY p.is_system DESC, p.created_at DESC
       `
       const [rows]: any = await pool.query(sql, [userId])
       return { success: true, data: rows, error: null }
@@ -54,13 +54,14 @@ export const playlistService = {
     playlistData: Playlist,
   ): Promise<ApiResponse<{ insertId: number }>> => {
     try {
-      const sql = `INSERT INTO playlists (user_id, title, description, cover_image, aleatoire) VALUES (?, ?, ?, ?, ?)`
+      const sql = `INSERT INTO playlists (user_id, title, description, cover_image, aleatoire, is_system) VALUES (?, ?, ?, ?, ?, ?)`
       const [result]: any = await pool.query(sql, [
         playlistData.user_id,
         playlistData.title,
         playlistData.description || "",
         playlistData.cover_image || "",
         playlistData.aleatoire ? 1 : 0,
+        playlistData.is_system ? 1 : 0,
       ])
       logger(
         playlistData.user_id,
@@ -93,10 +94,20 @@ export const playlistService = {
     playlistData: Partial<Playlist>,
   ): Promise<ApiResponse<null>> => {
     try {
+      let aleatoireValue = undefined
+      if (playlistData.aleatoire !== undefined) {
+        aleatoireValue = playlistData.aleatoire ? 1 : 0
+      }
+
       const sql = `
-        UPDATE playlists SET title = COALESCE(?, title), description = COALESCE(?, description), cover_image = COALESCE(?, cover_image), aleatoire = COALESCE(?, aleatoire)
-        WHERE id = ? AND user_id = ?
-      `
+      UPDATE playlists 
+      SET 
+        title = COALESCE(?, title), 
+        description = COALESCE(?, description), 
+        cover_image = COALESCE(?, cover_image),
+        aleatoire = COALESCE(?, aleatoire)
+      WHERE id = ? AND user_id = ?
+    `
       const [result]: any = await pool.query(sql, [
         playlistData.title ?? null,
         playlistData.description ?? null,
@@ -150,6 +161,21 @@ export const playlistService = {
     playlistData: Partial<Playlist>,
   ): Promise<ApiResponse<null>> => {
     try {
+      const [[playlist]]: any = await pool.query(
+        `SELECT is_system FROM playlists WHERE id = ?`,
+        [playlistId],
+      )
+      if (playlist?.is_system === 1) {
+        return {
+          success: false,
+          data: null,
+          error: {
+            code: "SYSTEM_PLAYLIST",
+            message: "Cette playlist ne peut pas être modifiée.",
+          },
+        }
+      }
+
       let aleatoireValue = undefined
       if (playlistData.aleatoire !== undefined) {
         aleatoireValue = playlistData.aleatoire ? 1 : 0
@@ -215,12 +241,25 @@ export const playlistService = {
     isAdmin: boolean,
   ): Promise<ApiResponse<null>> => {
     try {
+      const [[playlist]]: any = await pool.query(
+        `SELECT is_system FROM playlists WHERE id = ?`,
+        [playlistId],
+      )
+      if (playlist?.is_system === 1) {
+        return {
+          success: false,
+          data: null,
+          error: {
+            code: "SYSTEM_PLAYLIST",
+            message: "Cette playlist ne peut pas être supprimée.",
+          },
+        }
+      }
+
       const sql = isAdmin
         ? `DELETE FROM playlists WHERE id = ?`
         : `DELETE FROM playlists WHERE id = ? AND user_id = ?`
-
       const params = isAdmin ? [playlistId] : [playlistId, userId]
-
       const [result]: any = await pool.query(sql, params)
       if (result.affectedRows === 0) {
         return {
@@ -233,7 +272,6 @@ export const playlistService = {
           },
         }
       }
-
       logger(
         userId,
         FILE_NAME,

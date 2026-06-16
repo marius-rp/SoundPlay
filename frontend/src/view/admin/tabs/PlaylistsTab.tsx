@@ -8,6 +8,7 @@ import {
   X,
   Camera,
   Music,
+  Lock,
 } from "lucide-react"
 import { useToast } from "../../../context/ToastContext"
 import { adminPlaylistService } from "../../../service/admin/admin-playlist.service"
@@ -75,6 +76,8 @@ const PlaylistsTab: React.FC = () => {
   }, [playlists, search])
 
   const handleStartEdit = (p: any) => {
+    if (p.is_system) return
+
     setEditForm({
       title: p.title,
       coverFile: null,
@@ -256,8 +259,15 @@ const PlaylistsTab: React.FC = () => {
                   </td>
 
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      {editingId === p.id ? (
+                    <div className="flex justify-end gap-2 items-center">
+                      {p.is_system ? (
+                        <Tooltip text="Les playlists système ne peuvent pas être modifiées ou supprimées.">
+                          <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full border border-white/5 font-medium select-none">
+                            <Lock size={12} className="text-gray-600" />
+                            Système
+                          </span>
+                        </Tooltip>
+                      ) : editingId === p.id ? (
                         <>
                           <button
                             onClick={() => handleSave(p.id)}

@@ -7,4 +7,5 @@ export interface Playlist {
   created_at?: Date
   updated_at?: Date
   aleatoire: boolean
+  is_system: boolean
 }

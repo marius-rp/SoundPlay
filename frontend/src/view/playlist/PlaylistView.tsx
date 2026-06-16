@@ -294,6 +294,7 @@ const PlaylistView: React.FC = () => {
   )
 
   const isPlaylistAleatoire = Boolean(playlist?.aleatoire)
+  const isSystemPlaylist = Boolean((playlist as any)?.is_system)
 
   return (
     <div className="h-full bg-[#121212] overflow-y-auto pb-32 scrollbar-hide relative text-white">
@@ -397,29 +398,36 @@ const PlaylistView: React.FC = () => {
         </Tooltip>
 
         <DropdownMenu>
-          <DropdownItem icon={<Pen size={16} />} onClick={handleOpenEditModal}>
-            Modifier la playlist
-          </DropdownItem>
+          {!isSystemPlaylist && (
+            <DropdownItem
+              icon={<Pen size={16} />}
+              onClick={handleOpenEditModal}
+            >
+              Modifier la playlist
+            </DropdownItem>
+          )}
           <DropdownItem
             icon={<Upload size={16} />}
             onClick={() => setIsImportModalOpen(true)}
           >
             Importer des musiques
           </DropdownItem>
-          <DropdownDivider />
-          <DropdownItem
-            icon={
-              isDeletingPlaylist ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Trash2 size={16} />
-              )
-            }
-            onClick={() => setIsConfirmModalOpen(true)}
-            variant="danger"
-          >
-            {isDeletingPlaylist ? "Suppression..." : "Supprimer la playlist"}
-          </DropdownItem>
+          {!isSystemPlaylist && <DropdownDivider />}
+          {!isSystemPlaylist && (
+            <DropdownItem
+              icon={
+                isDeletingPlaylist ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Trash2 size={16} />
+                )
+              }
+              onClick={() => setIsConfirmModalOpen(true)}
+              variant="danger"
+            >
+              {isDeletingPlaylist ? "Suppression..." : "Supprimer la playlist"}
+            </DropdownItem>
+          )}
         </DropdownMenu>
       </div>
 

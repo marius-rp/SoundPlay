@@ -98,7 +98,7 @@ export const adminService = {
   ): Promise<ApiResponse<null>> => {
     try {
       const [[oldPlaylist]]: any = await pool.query(
-        `SELECT cover_image FROM playlists WHERE id = ?`,
+        `SELECT cover_image, is_system FROM playlists WHERE id = ?`,
         [playlistId],
       )
 
@@ -107,6 +107,17 @@ export const adminService = {
           success: false,
           data: null,
           error: { code: "NOT_FOUND", message: "Playlist introuvable." },
+        }
+      }
+
+      if (oldPlaylist.is_system === 1) {
+        return {
+          success: false,
+          data: null,
+          error: {
+            code: "SYSTEM_PLAYLIST",
+            message: "Cette playlist ne peut pas être modifiée.",
+          },
         }
       }
 
@@ -166,6 +177,21 @@ export const adminService = {
 
   deletePlaylist: async (playlistId: number): Promise<ApiResponse<null>> => {
     try {
+      const [[playlist]]: any = await pool.query(
+        `SELECT is_system FROM playlists WHERE id = ?`,
+        [playlistId],
+      )
+      if (playlist?.is_system === 1) {
+        return {
+          success: false,
+          data: null,
+          error: {
+            code: "SYSTEM_PLAYLIST",
+            message: "Cette playlist ne peut pas être supprimée.",
+          },
+        }
+      }
+
       await pool.query(`DELETE FROM playlisttracks WHERE playlist_id = ?`, [
         playlistId,
       ])

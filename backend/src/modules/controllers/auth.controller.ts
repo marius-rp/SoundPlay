@@ -7,6 +7,7 @@ import { successResponse, errorResponse } from "../../utils/ApiResponse.helper"
 import { logger } from "../../utils/logger.helper"
 import { validatePasswordStrength } from "../../utils/password.helper"
 import { ROLES } from "../../constant"
+import { playlistService } from "../services/playlist.service"
 
 const FILE_NAME = "auth.controller.ts"
 
@@ -33,6 +34,24 @@ export const signUp = async (req: Request, res: Response) => {
     })
 
     if (newUserId) {
+      const newPlaylistSystem = await playlistService.createPlaylist({
+        title: "liked title",
+        description: "Liked songs",
+        cover_image: "liked_playlist_cover.png",
+        aleatoire: false,
+        is_system: true,
+        user_id: newUserId,
+      })
+
+      if (!newPlaylistSystem.success) {
+        logger(
+          "SYSTEM",
+          FILE_NAME,
+          "ERROR",
+          "Échec de la création de la playlist système pour le nouvel utilisateur (ID: ${newUserId})",
+        )
+      }
+
       logger(
         "SYSTEM",
         FILE_NAME,
