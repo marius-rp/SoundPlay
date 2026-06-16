@@ -37,6 +37,10 @@ docker-compose.override.yml
 # ========================
 # 📁 Divers
 # ========================
-storage/
 .exe
 yt-dlp
+
+storage/*
+!storage/cover_playlist/
+storage/cover_playlist/*
+!storage/cover_playlist/liked_playlist_cover.jpg
