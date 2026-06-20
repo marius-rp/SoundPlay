@@ -29,16 +29,26 @@ export const playlistService = {
 
   updatePlaylist: async (
     id: number,
-    data: { title: string; description: string; coverFile?: File | null },
-  ): Promise<ApiResponse<{ cover_image?: string } | null>> => {
+    data: {
+      title: string
+      description: string
+      coverFile?: File | null
+      removeCover?: boolean
+    },
+  ): Promise<ApiResponse<{ cover_image?: string | null } | null>> => {
     const formData = new FormData()
     formData.append("title", data.title)
     formData.append("description", data.description)
+
     if (data.coverFile) {
       formData.append("cover", data.coverFile)
     }
 
-    const res = await apiRequest.put<{ cover_image?: string } | null>(
+    if (data.removeCover) {
+      formData.append("removeCover", "true")
+    }
+
+    const res = await apiRequest.put<{ cover_image?: string | null } | null>(
       `playlist/update/${id}`,
       formData,
     )
@@ -70,7 +80,7 @@ export const playlistService = {
 
     return apiRequest.post<IImportCsvResponse>(
       `playlist/${playlistId}/import-csv`,
-      formData
+      formData,
     )
   },
 }

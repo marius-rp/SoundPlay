@@ -44,9 +44,7 @@ const PlaylistView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isRemoving, setIsRemoving] = useState<string | null>(null)
   const [isDeletingPlaylist, setIsDeletingPlaylist] = useState<boolean>(false)
-
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false)
-
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false)
   const [isEditing, setIsEditing] = useState<boolean>(false)
   const [editForm, setEditForm] = useState<{
@@ -60,6 +58,7 @@ const PlaylistView: React.FC = () => {
   const [isImportingCsv, setIsImportingCsv] = useState<boolean>(false)
   const [importData, setImportData] = useState<{ queue: any[] } | null>(null)
   const [showMatcher, setShowMatcher] = useState(false)
+  const [removeCover, setRemoveCover] = useState<boolean>(false)
 
   const {
     playTrack,
@@ -194,6 +193,7 @@ const PlaylistView: React.FC = () => {
     })
     setCoverFile(null)
     setCoverPreview(null)
+    setRemoveCover(false)
     setIsEditModalOpen(true)
   }
 
@@ -219,11 +219,14 @@ const PlaylistView: React.FC = () => {
         title: editForm.title.trim(),
         description: editForm.description.trim(),
         coverFile: coverFile,
+        removeCover: removeCover,
       })
 
       if (res.success) {
-        const finalCoverUrl =
-          (res.data as any)?.cover_image || playlist.cover_image
+        let finalCoverUrl = (res.data as any)?.cover_image
+        if (removeCover) finalCoverUrl = null
+        else if (!finalCoverUrl) finalCoverUrl = playlist.cover_image
+
         setPlaylist({
           ...playlist,
           title: editForm.title.trim(),
@@ -566,32 +569,54 @@ const PlaylistView: React.FC = () => {
           className="flex flex-col gap-5 pt-4 px-1"
         >
           <div className="flex justify-center mb-2">
-            <div
-              className="relative w-36 h-36 bg-[#282828] shadow-lg rounded-sm overflow-hidden group cursor-pointer border border-white/10"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {coverPreview || displayCover ? (
-                <img
-                  src={coverPreview || displayCover!}
-                  alt="Aperçu"
-                  className="w-full h-full object-cover group-hover:blur-[2px] transition-all"
-                />
-              ) : (
-                <div className="flex items-center justify-center w-full h-full text-gray-500">
-                  <Music size={40} />
+            <div className="flex justify-center mb-2 relative">
+              <div
+                className="relative w-36 h-36 bg-[#282828] shadow-lg rounded-sm overflow-hidden group cursor-pointer border border-white/10"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {(coverPreview || playlist?.cover_image) && !removeCover ? (
+                  <img
+                    src={coverPreview || playlist?.cover_image!}
+                    alt="Aperçu"
+                    className="w-full h-full object-cover group-hover:blur-[2px] transition-all"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full text-gray-500">
+                    <Music size={40} />
+                  </div>
+                )}
+
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity">
+                  <Camera size={28} className="text-white mb-2" />
+                  <span className="text-xs font-bold">Choisir une image</span>
                 </div>
-              )}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity">
-                <Camera size={28} className="text-white mb-2" />
-                <span className="text-xs font-bold">Choisir une image</span>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    handleImageChange(e)
+                    setRemoveCover(false)
+                  }}
+                  accept="image/*"
+                  className="hidden"
+                />
               </div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageChange}
-                accept="image/*"
-                className="hidden"
-              />
+
+              {(coverPreview || playlist?.cover_image) && !removeCover && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCoverFile(null)
+                    setCoverPreview(null)
+                    setRemoveCover(true)
+                  }}
+                  className="absolute top-[-10px] right-[calc(50%-80px)] bg-[#e91429] text-white p-2 rounded-full hover:scale-110 hover:bg-red-600 transition-all z-10 shadow-lg cursor-pointer"
+                  title="Supprimer l'image"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </div>
           </div>
 

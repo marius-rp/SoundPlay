@@ -92,15 +92,17 @@ export const updatePlaylist = async (req: Request, res: Response) => {
     if (isNaN(playlistId))
       return errorResponse(res, 400, "ID de playlist invalide.")
 
-    const { title, description } = req.body
+    const { title, description, removeCover } = req.body
     let { aleatoire } = req.body
 
     if (aleatoire === "true" || aleatoire === "1") aleatoire = true
     if (aleatoire === "false" || aleatoire === "0") aleatoire = false
 
-    let cover_image = undefined
+    let cover_image: string | null | undefined = undefined
     if (req.file) {
       cover_image = `/storage/cover_playlist/${req.file.filename}?t=${Date.now()}`
+    } else if (removeCover === "true") {
+      cover_image = null
     }
 
     const result = await playlistService.updatePlaylist(playlistId, userId, {
@@ -108,7 +110,8 @@ export const updatePlaylist = async (req: Request, res: Response) => {
       description,
       cover_image,
       aleatoire,
-    })
+      removeCover: removeCover === "true",
+    } as any)
 
     if (!result.success) {
       const statusCode =

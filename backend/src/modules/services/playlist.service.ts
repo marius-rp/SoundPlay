@@ -2,6 +2,8 @@ import pool from "../config/db"
 import { ApiResponse } from "../types/ApiResponse"
 import { Playlist } from "../types/Playlist"
 import { logger } from "../../utils/logger.helper"
+import path from "path"
+import fs from "fs"
 
 const FILE_NAME = "playlist.service.ts"
 
@@ -91,7 +93,7 @@ export const playlistService = {
   updatePlaylist: async (
     playlistId: number,
     userId: number,
-    playlistData: Partial<Playlist>,
+    playlistData: Partial<Playlist> & { removeCover?: boolean },
   ): Promise<ApiResponse<null>> => {
     try {
       let aleatoireValue = undefined
@@ -99,27 +101,65 @@ export const playlistService = {
         aleatoireValue = playlistData.aleatoire ? 1 : 0
       }
 
-      const sql = `
-      UPDATE playlists 
-      SET 
-        title = COALESCE(?, title), 
-        description = COALESCE(?, description), 
-        cover_image = COALESCE(?, cover_image),
-        aleatoire = COALESCE(?, aleatoire)
-      WHERE id = ? AND user_id = ?
-    `
-      const [result]: any = await pool.query(sql, [
+      if (playlistData.removeCover || playlistData.cover_image) {
+        const [[oldPlaylist]]: any = await pool.query(
+          `SELECT cover_image FROM playlists WHERE id = ? AND user_id = ?`,
+          [playlistId, userId],
+        )
+
+        if (oldPlaylist?.cover_image) {
+          const cleanImageUrl = oldPlaylist.cover_image.split("?")[0]
+          const oldFilename = path.basename(cleanImageUrl)
+          const oldFilePath = path.join(
+            process.cwd(),
+            "storage/cover_playlist",
+            oldFilename,
+          )
+
+          if (fs.existsSync(oldFilePath)) {
+            fs.unlinkSync(oldFilePath)
+            logger(
+              userId,
+              "playlist.service.ts",
+              "INFO",
+              `Ancienne cover supprimée: ${oldFilename}`,
+            )
+          } else {
+            logger(
+              userId,
+              "playlist.service.ts",
+              "WARN",
+              `Fichier introuvable sur le disque pour suppression: ${oldFilePath}`,
+            )
+          }
+        }
+      }
+
+      let sql = `
+        UPDATE playlists 
+        SET 
+          title = COALESCE(?, title), 
+          description = COALESCE(?, description), 
+          aleatoire = COALESCE(?, aleatoire)
+      `
+      const queryParams: any[] = [
         playlistData.title ?? null,
         playlistData.description ?? null,
-        playlistData.cover_image ?? null,
-        playlistData.aleatoire !== undefined
-          ? playlistData.aleatoire
-            ? 1
-            : 0
-          : null,
-        playlistId,
-        userId,
-      ])
+        aleatoireValue ?? null,
+      ]
+
+      if (playlistData.removeCover) {
+        sql += `, cover_image = NULL`
+      } else if (playlistData.cover_image !== undefined) {
+        sql += `, cover_image = ?`
+        queryParams.push(playlistData.cover_image)
+      }
+
+      sql += ` WHERE id = ? AND user_id = ?`
+      queryParams.push(playlistId, userId)
+
+      const [result]: any = await pool.query(sql, queryParams)
+
       if (result.affectedRows === 0)
         return {
           success: false,
@@ -130,6 +170,7 @@ export const playlistService = {
               "Playlist introuvable ou vous n'avez pas l'autorisation de la modifier.",
           },
         }
+
       logger(
         userId,
         FILE_NAME,
