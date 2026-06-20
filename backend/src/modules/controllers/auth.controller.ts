@@ -35,9 +35,9 @@ export const signUp = async (req: Request, res: Response) => {
 
     if (newUserId) {
       const newPlaylistSystem = await playlistService.createPlaylist({
-        title: "liked title",
-        description: "Liked songs",
-        cover_image: "liked_playlist_cover.jpg",
+        title: "Titres likés",
+        description: "Vos titres likés",
+        cover_image: "/storage/cover_playlist/liked_playlist_cover.jpg",
         aleatoire: false,
         is_system: true,
         user_id: newUserId,

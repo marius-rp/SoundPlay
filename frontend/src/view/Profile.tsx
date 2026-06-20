@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useUser } from "../hooks/useUser"
 import {
   Mail,
@@ -17,6 +17,7 @@ import {
   deleteAccount,
   requestEmailVerification,
 } from "../service/authService"
+import { playlistService } from "../service/playlistService"
 import { useAuth } from "../protection/AuthContext"
 import {
   DropdownMenu,
@@ -34,6 +35,7 @@ const Profile: React.FC = () => {
   const [isOpenChangeEmail, setIsOpenChangeEmail] = useState<boolean>(false)
   const [emailInput, setEmailInput] = useState<string>("")
   const [isEmailLoading, setIsEmailLoading] = useState<boolean>(false)
+  const [playlistCount, setPlaylistCount] = useState<number>(0)
 
   const [pswData, setPswData] = useState({
     oldPassword: "",
@@ -44,6 +46,21 @@ const Profile: React.FC = () => {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { logoutUser } = useAuth()
+
+  useEffect(() => {
+    const fetchUserPlaylists = async () => {
+      try {
+        const res = await playlistService.getUserPlaylists()
+        if (res.success && res.data) {
+          setPlaylistCount(res.data.length)
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des playlists", error)
+      }
+    }
+
+    fetchUserPlaylists()
+  }, [])
 
   const handleDeleteAccount = async () => {
     try {
@@ -134,7 +151,7 @@ const Profile: React.FC = () => {
             <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 text-sm font-bold">
               <span className="w-1 h-1 bg-white rounded-full"></span>
               <span className="hover:underline cursor-pointer">
-                12 Playlists
+                {playlistCount} Playlist{playlistCount !== 1 ? "s" : ""}
               </span>
             </div>
           </div>
