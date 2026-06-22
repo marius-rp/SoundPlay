@@ -15,6 +15,7 @@ import { PlayerProvider } from "./context/PlayerContext"
 import { ROLES } from "./constant"
 import VerifyEmail from "./view/VerifyEmail"
 import ResetPassword from "./view/ResetPassword"
+import FullScreenPlayer from "./components/player/FullScreenPlayer"
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
       <AuthProvider>
         <ToastProvider>
           <PlayerProvider>
+            <FullScreenPlayer />
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/verify-email" element={<VerifyEmail />} />

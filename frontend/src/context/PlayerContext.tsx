@@ -6,6 +6,7 @@ import React, {
   useEffect,
 } from "react"
 import { API_URL } from "../constant"
+import { parseLRC, type LyricLine } from "../utils/lrcParser.helper"
 
 export interface IPlayerTrack {
   id: string | number
@@ -35,6 +36,14 @@ interface PlayerContextType {
   seek: (time: number) => void
   toggleShuffle: () => void
   stopTrack: () => void
+  lyrics: LyricLine[]
+  isLyricsLoading: boolean
+  hasLyrics: boolean
+  isLyricsOpen: boolean
+  toggleLyricsPanel: () => void
+  closeLyricsPanel: () => void
+  isFullScreen: boolean
+  toggleFullScreen: () => void
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined)
@@ -62,6 +71,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [isShuffle, setIsShuffle] = useState<boolean>(false)
   const [unplayedIndices, setUnplayedIndices] = useState<number[]>([])
+
+  const [lyrics, setLyrics] = useState<LyricLine[]>([])
+  const [isLyricsLoading, setIsLyricsLoading] = useState<boolean>(false)
+  const [isLyricsOpen, setIsLyricsOpen] = useState<boolean>(false)
+
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false)
+
+  const lyricsRequestIdRef = useRef<string | number | null>(null)
 
   const nextTrackRef = useRef<() => void>(() => {})
 
@@ -181,7 +198,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     setCurrentTrack(null)
     setCurrentIndex(-1)
     setCurrentTime(0)
+    setLyrics([])
+    setIsLyricsOpen(false)
+    setIsFullScreen(false)
   }
+
+  const toggleLyricsPanel = () => setIsLyricsOpen((prev) => !prev)
+  const closeLyricsPanel = () => setIsLyricsOpen(false)
+
+  const toggleFullScreen = () => setIsFullScreen((prev) => !prev)
 
   useEffect(() => {
     nextTrackRef.current = nextTrack
@@ -245,6 +270,47 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [currentTrack, currentIndex])
 
+  useEffect(() => {
+    if (!currentTrack || !currentTrack.id) {
+      setLyrics([])
+      return
+    }
+
+    const trackId = currentTrack.id
+    lyricsRequestIdRef.current = trackId
+    setLyrics([])
+    setIsLyricsLoading(true)
+
+    const fetchLyrics = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/playMusic/lyrics/${trackId}`, {
+          credentials: "include",
+        })
+
+        if (lyricsRequestIdRef.current !== trackId) return
+
+        if (!res.ok) {
+          setLyrics([])
+          return
+        }
+
+        const json = await res.json()
+        if (json.success && json.data?.lyrics_lrc) {
+          const parsed = parseLRC(json.data.lyrics_lrc)
+          setLyrics(parsed)
+        } else {
+          setLyrics([])
+        }
+      } catch (err) {
+        if (lyricsRequestIdRef.current === trackId) setLyrics([])
+      } finally {
+        if (lyricsRequestIdRef.current === trackId) setIsLyricsLoading(false)
+      }
+    }
+
+    fetchLyrics()
+  }, [currentTrack?.id])
+
   return (
     <PlayerContext.Provider
       value={{
@@ -263,6 +329,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         seek,
         toggleShuffle,
         stopTrack,
+        lyrics,
+        isLyricsLoading,
+        hasLyrics: lyrics.length > 0,
+        isLyricsOpen,
+        toggleLyricsPanel,
+        closeLyricsPanel,
+        isFullScreen,
+        toggleFullScreen,
       }}
     >
       {children}

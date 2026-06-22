@@ -11,6 +11,7 @@ export interface IPlaylist {
   trackCount?: number
   interface: boolean
   aleatoire: boolean
+  is_system: boolean
 }
 
 export interface IPlaylistPayload {

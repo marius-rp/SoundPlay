@@ -6,7 +6,7 @@ import { FloatingPlayButton } from "../components/buttons/FloatingPlayButton"
 import { playlistService } from "../service/playlistService"
 import { playlistTrackService } from "../service/playlistTrackService"
 import { type IPlaylist } from "../interface/IPlaylist"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { formatTracksForPlayer } from "../utils/player.helper"
 import { usePlayer } from "../context/PlayerContext"
 import { useToast } from "../context/ToastContext"
@@ -15,7 +15,7 @@ import Tooltip from "../components/ui/Tooltip"
 const Library: React.FC = () => {
   const navigate = useNavigate()
   const { showToast } = useToast()
-
+  const location = useLocation()
   const { playTrack } = usePlayer()
 
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -44,6 +44,13 @@ const Library: React.FC = () => {
   useEffect(() => {
     fetchPlaylists()
   }, [])
+
+  useEffect(() => {
+    if (location.state?.openCreateModal) {
+      setIsModalOpen(true)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location, navigate])
 
   const handleCreatePlaylist = async (e: React.FormEvent) => {
     e.preventDefault()

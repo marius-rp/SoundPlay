@@ -19,13 +19,15 @@ import { useAuth } from "../../protection/AuthContext"
 import { useDownload } from "../../context/DownloadContext"
 import PlayerBar from "../player/PlayerBar"
 import { usePlayer } from "../../context/PlayerContext"
+import { playlistService } from "../../service/playlistService"
+import { useToast } from "../../context/ToastContext"
 
 const Layout: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { fullName, isSupervisor, isAdmin } = useUser()
   const { logoutUser } = useAuth()
-
+  const { showToast } = useToast()
   const { activeDownloads, cancelDownload } = useDownload()
   const { currentTrack } = usePlayer()
   const [isDownloadsExpanded, setIsDownloadsExpanded] = useState(false)
@@ -36,6 +38,22 @@ const Layout: React.FC = () => {
     const el = document.getElementById("main-container")
     if (el) el.scrollTop = 0
   }, [location.pathname])
+
+  const handleLikedSongsClick = async () => {
+    try {
+      const res = await playlistService.getUserPlaylists()
+      if (res.success && res.data) {
+        const likedPlaylist = res.data.find((p) => p.is_system)
+        if (likedPlaylist) {
+          navigate(`/playlist/${likedPlaylist.id}`)
+        } else {
+          navigate("/library")
+        }
+      }
+    } catch {
+      showToast("Erreur lors de la récupération des playlists", "error")
+    }
+  }
 
   return (
     <div className="flex flex-col h-screen bg-black text-white overflow-hidden relative">
@@ -137,18 +155,26 @@ const Layout: React.FC = () => {
           </nav>
 
           <div className="pt-8 space-y-4">
-            <div className="flex items-center space-x-4 text-gray-400 hover:text-white cursor-pointer transition group">
+            <button
+              onClick={() =>
+                navigate("/library", { state: { openCreateModal: true } })
+              }
+              className="flex items-center space-x-4 text-gray-400 hover:text-white cursor-pointer transition group"
+            >
               <div className="bg-gray-400 p-1 rounded-sm text-black group-hover:bg-white transition">
                 <PlusSquare size={16} />
               </div>
               <span className="font-bold text-sm">Créer une playlist</span>
-            </div>
-            <div className="flex items-center space-x-4 text-gray-400 hover:text-white cursor-pointer transition group">
+            </button>
+            <button
+              onClick={handleLikedSongsClick}
+              className="flex items-center space-x-4 text-gray-400 hover:text-white cursor-pointer transition group"
+            >
               <div className="bg-linear-to-br from-indigo-700 to-blue-300 p-1 rounded-sm text-white">
                 <Heart size={16} fill="white" />
               </div>
               <span className="font-bold text-sm">Titres likés</span>
-            </div>
+            </button>
           </div>
 
           {(isSupervisor || isAdmin) && (
@@ -292,7 +318,6 @@ const Layout: React.FC = () => {
           <span className="text-[10px] font-medium mt-1">Profil</span>
         </div>
 
-        {/* ← Ajout Admin */}
         {(isAdmin || isSupervisor) && (
           <div
             onClick={() => navigate("/Admin")}

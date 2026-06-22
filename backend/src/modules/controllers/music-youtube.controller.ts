@@ -3,6 +3,7 @@ import { musicYoutubeService } from "../services/music-youtube.service"
 import { successResponse, errorResponse } from "../../utils/ApiResponse.helper"
 import { searchHistoryService } from "../services/search-history.service"
 import { musicService } from "../services/music.service"
+import { lyricsService } from "../services/lyrics.service"
 import { Track } from "../types/Music"
 import ytSearch from "yt-search"
 import { logger } from "../../utils/logger.helper"
@@ -75,6 +76,14 @@ export const downloadMusic = async (req: Request, res: Response) => {
               FILE_NAME,
               "LOG",
               `Métadonnées sauvegardées en BDD pour : ${id}`,
+            )
+
+            lyricsService.fetchAndStoreLyrics(
+              trackData.id,
+              trackData.title,
+              trackData.artist,
+              videoInfo.seconds,
+              userId,
             )
           })
           .catch((err) => {
