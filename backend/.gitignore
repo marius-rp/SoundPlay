@@ -40,6 +40,8 @@ docker-compose.override.yml
 .exe
 yt-dlp
 
+cache_previews/
+
 storage/*
 !storage/cover_playlist/
 storage/cover_playlist/*

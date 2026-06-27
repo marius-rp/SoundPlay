@@ -25,6 +25,7 @@ let isBlocked = false
 let downloadQueue = Promise.resolve()
 
 const cancelledDownloads = new Set<string>()
+const abortControllers = new Map<string, AbortController>()
 
 if (!fs.existsSync(STORAGE_PATH)) {
   fs.mkdirSync(STORAGE_PATH, { recursive: true })
@@ -154,12 +155,25 @@ export const musicYoutubeService = {
 
   cancelDownload: (videoId: string, userId: string | number = "SYSTEM") => {
     cancelledDownloads.add(videoId)
-    logger(
-      userId,
-      FILE_NAME,
-      "WARN",
-      `Demande d'annulation enregistrée pour : ${videoId}`,
-    )
+
+    const activeController = abortControllers.get(videoId)
+    if (activeController) {
+      activeController.abort()
+      abortControllers.delete(videoId)
+      logger(
+        userId,
+        FILE_NAME,
+        "WARN",
+        `Processus de téléchargement yt-dlp actif interrompu pour : ${videoId}`,
+      )
+    } else {
+      logger(
+        userId,
+        FILE_NAME,
+        "WARN",
+        `Demande d'annulation enregistrée (avant démarrage) pour : ${videoId}`,
+      )
+    }
   },
 
   downloadTrack: async (
@@ -204,6 +218,9 @@ export const musicYoutubeService = {
         return
       }
 
+      const controller = new AbortController()
+      abortControllers.set(videoId, controller)
+
       try {
         if (fs.existsSync(filePath)) return
         const randomUA = getRandomUserAgent()
@@ -213,12 +230,15 @@ export const musicYoutubeService = {
           --no-part \
           --no-progress \
           --user-agent "${randomUA}" \
+          --js-runtimes node \
+          --extractor-args "youtube:player-client=android,web" \
           -x --audio-format mp3 --audio-quality 128k \
           -o "${filePath}" \
           "https://www.youtube.com/watch?v=${videoId}"`
 
         logger(userId, FILE_NAME, "INFO", `Démarrage yt-dlp pour : ${videoId}`)
-        await execPromise(cmd)
+
+        await execPromise(cmd, { signal: controller.signal })
 
         logger(
           userId,
@@ -231,6 +251,21 @@ export const musicYoutubeService = {
           Math.floor(Math.random() * DOWNLOAD_DELAY_MAX) + DOWNLOAD_DELAY_MIN
         await new Promise((resolve) => setTimeout(resolve, randomDelay))
       } catch (e: any) {
+        if (e.name === "AbortError" || e.code === "ABORT_ERR") {
+          logger(
+            userId,
+            FILE_NAME,
+            "WARN",
+            `Téléchargement interrompu proprement en cours de route : ${videoId}`,
+          )
+          if (fs.existsSync(filePath)) {
+            try {
+              fs.unlinkSync(filePath)
+            } catch {}
+          }
+          return
+        }
+
         if (e.message.includes("429")) {
           isBlocked = true
           logger(
@@ -250,6 +285,8 @@ export const musicYoutubeService = {
           `Erreur lors du téléchargement yt-dlp (${videoId}) : ${e.message}`,
         )
         throw e
+      } finally {
+        abortControllers.delete(videoId)
       }
     })
 
@@ -261,41 +298,169 @@ export const musicYoutubeService = {
     videoId: string,
     userId: string | number = "SYSTEM",
   ): Promise<string> => {
-    const previewPath = path.resolve(PREVIEW_CACHE_PATH, `${videoId}.mp3`)
+    const previewPath = path.resolve(PREVIEW_CACHE_PATH, `${videoId}.m4a`)
     if (fs.existsSync(previewPath)) return previewPath
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        const randomUA = getRandomUserAgent()
+    try {
+      const randomUA = getRandomUserAgent()
+      const cmd = `/app/yt-dlp \
+        --no-part \
+        --user-agent "${randomUA}" \
+        --js-runtimes node \
+        --extractor-args "youtube:player-client=android,web" \
+        -x --audio-format m4a --audio-quality 128k \
+        --download-sections "*0-30" \
+        -o "${previewPath}" \
+        "https://www.youtube.com/watch?v=${videoId}"`
+
+      logger(
+        userId,
+        FILE_NAME,
+        "LOG",
+        `Génération de la preview pour : ${videoId}`,
+      )
+
+      await execPromise(cmd)
+      return previewPath
+    } catch (e: any) {
+      if (fs.existsSync(previewPath)) {
+        try {
+          fs.unlinkSync(previewPath)
+        } catch {}
+      }
+
+      logger(
+        userId,
+        FILE_NAME,
+        "ERROR",
+        `Échec génération preview (${videoId}) : ${e.message}`,
+      )
+      throw e
+    }
+  },
+
+  getTrendingTracks: async (
+    userId: string | number = "SYSTEM",
+  ): Promise<(Track & { genre: string })[]> => {
+    const cacheKey = "TRENDING_WEEKLY_ARTISTS_DIVERSE"
+    const cachedResults =
+      searchCache.get<(Track & { genre: string })[]>(cacheKey)
+
+    if (cachedResults) return cachedResults
+
+    const isStrictlyOfficialTrack = (entry: any): boolean => {
+      const title = (entry.title || "").toLowerCase()
+      const uploader = (entry.uploader || entry.channel || "").toLowerCase()
+
+      if (
+        entry.is_live === true ||
+        entry.live_status === "is_live" ||
+        !entry.duration
+      ) {
+        return false
+      }
+
+      const bannedKeywords = [
+        "remix",
+        "mashup",
+        "bootleg",
+        "cover",
+        "karaoke",
+        "instrumental",
+        "sped up",
+        "slowed",
+        "reverb",
+        "8d",
+        "bass boosted",
+        "tiktok version",
+        "live at",
+        "concert",
+        "reaction",
+      ]
+
+      if (bannedKeywords.some((keyword) => title.includes(keyword))) {
+        return false
+      }
+
+      if (entry.view_count && entry.view_count < 250000) {
+        return false
+      }
+
+      if (uploader.endsWith(" - topic") || uploader.endsWith("vevo")) {
+        return true
+      }
+
+      const suspectUploaders = [
+        "records",
+        "nation",
+        "bass",
+        "vibes",
+        "music channel",
+      ]
+      if (suspectUploaders.some((word) => uploader.includes(word))) {
+        return false
+      }
+
+      return true
+    }
+
+    try {
+      const genres = ["POP", "RAP", "Electro", "Rock", "LOFI CHILL"]
+      const randomUA = getRandomUserAgent()
+
+      const promises = genres.map(async (genre) => {
+        const query = `${genre} official music ${new Date().getFullYear()}`
 
         const cmd = `/app/yt-dlp \
-          --limit-rate 1M \
-          --no-part \
-          --user-agent "${randomUA}" \
-          -x --audio-format mp3 --audio-quality 128k \
-          --download-sections "*0-30" \
-          -o "${previewPath}" \
-          "https://www.youtube.com/watch?v=${videoId}"`
+            --dump-single-json \
+            --flat-playlist \
+            --user-agent "${randomUA}" \
+            --js-runtimes "node:${process.execPath}" \
+            --extractor-args "youtube:player-client=tv,web_embedded" \
+            "ytsearch8:${query}"`
 
-        logger(
-          userId,
-          FILE_NAME,
-          "LOG",
-          `Génération de la preview pour : ${videoId}`,
-        )
-        await execPromise(cmd)
-        resolve(previewPath)
-      } catch (e: any) {
-        if (fs.existsSync(previewPath)) fs.unlinkSync(previewPath)
-        logger(
-          userId,
-          FILE_NAME,
-          "ERROR",
-          `Échec génération preview (${videoId}) : ${e.message}`,
-        )
-        reject(e)
-      }
-    })
+        try {
+          const { stdout } = await execPromise(cmd)
+          const parsedData = JSON.parse(stdout)
+          const entries = parsedData.entries || []
+
+          const validTracks = entries
+            .filter((entry: any) => isStrictlyOfficialTrack(entry))
+            .slice(0, 8)
+            .map(
+              (entry: any) =>
+                ({
+                  id: entry.id,
+                  title: entry.title.split(" - ")[1] || entry.title,
+                  artist: entry.uploader || entry.channel || "Artiste",
+                  image:
+                    entry.thumbnail ||
+                    `https://img.youtube.com/vi/${entry.id}/mqdefault.jpg`,
+                  duration: entry.duration ? String(entry.duration) : "0:00",
+                  genre: genre,
+                }) as Track & { genre: string },
+            )
+
+          return validTracks
+        } catch (err) {
+          return []
+        }
+      })
+
+      const results = await Promise.all(promises)
+      const tracks = results.flat()
+
+      searchCache.set(cacheKey, tracks, 7 * 24 * 60 * 60) // 7 jours
+      logger(
+        userId,
+        FILE_NAME,
+        "INFO",
+        `Trending tracks récupérés : ${tracks.length}/${genres.length} genres avec résultat officiel.`,
+      )
+      return tracks
+    } catch (e: any) {
+      throw new Error("TRENDING_TRACKS_FAILED")
+    }
   },
 
   clearSearchCache: (userId: string | number = "SYSTEM"): void => {

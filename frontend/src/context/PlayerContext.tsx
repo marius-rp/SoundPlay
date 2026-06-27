@@ -82,6 +82,41 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const nextTrackRef = useRef<() => void>(() => {})
 
+  useEffect(() => {
+    if (!currentTrack) {
+      navigator.mediaSession.metadata = null
+      return
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.title,
+      artist: currentTrack.artist,
+      album: "SoundPlay",
+      artwork: [
+        {
+          src: currentTrack.image,
+          sizes: "512x512",
+          type: "image/jpeg",
+        },
+      ],
+    })
+
+    navigator.mediaSession.setActionHandler("play", () => togglePlayPause())
+    navigator.mediaSession.setActionHandler("pause", () => togglePlayPause())
+    navigator.mediaSession.setActionHandler("previoustrack", () => prevTrack())
+    navigator.mediaSession.setActionHandler("nexttrack", () => nextTrack())
+
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused"
+
+    if ("setPositionState" in navigator.mediaSession) {
+      navigator.mediaSession.setPositionState({
+        duration: duration,
+        playbackRate: 1,
+        position: currentTime,
+      })
+    }
+  }, [currentTrack, isPlaying, currentTime, duration])
+
   const playTrack = (
     track: IPlayerTrack,
     newQueue?: IPlayerTrack[],

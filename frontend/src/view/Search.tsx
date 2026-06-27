@@ -14,6 +14,7 @@ import SearchBar from "../components/dropdown/SearchBar"
 import { useDownload } from "../context/DownloadContext"
 import { useToast } from "../context/ToastContext"
 import { Music } from "lucide-react"
+import { API_URL } from "../constant"
 
 const Search: React.FC = () => {
   const { showToast } = useToast()
@@ -114,34 +115,29 @@ const Search: React.FC = () => {
 
   const handlePreview = async (track: ITrack) => {
     if (!audioRef.current) return
+
     if (currentPreviewId === track.id) {
       audioRef.current.pause()
       setCurrentPreviewId(null)
       setIsLoadingPreview(null)
       return
     }
+
     audioRef.current.pause()
     setCurrentPreviewId(track.id)
     setIsLoadingPreview(track.id)
 
-    const previewRes = await musicYoutubeService.getPreview(track.id)
-    if (!previewRes.success || !previewRes.data) {
-      setCurrentPreviewId(null)
-      setIsLoadingPreview(null)
-      showToast("Impossible de charger l'aperçu", "error")
-      return
-    }
+    const previewUrl = `${API_URL}/api/music-youtube/preview/${track.id}`
+    audioRef.current.src = previewUrl
 
-    audioRef.current.src = previewRes.data.url
-    
     try {
       await audioRef.current.play()
       setIsLoadingPreview(null)
     } catch (err: any) {
-      if (err.name !== "AbortError") {
-        setCurrentPreviewId(null)
-        setIsLoadingPreview(null)
-      }
+      console.error("Erreur lecture:", err)
+      setCurrentPreviewId(null)
+      setIsLoadingPreview(null)
+      showToast("Impossible de lire l'extrait", "error")
     }
   }
 

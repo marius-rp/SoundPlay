@@ -136,6 +136,21 @@ export const getPreview = async (req: Request, res: Response) => {
   }
 }
 
+export const getTrendingTracks = async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id || "SYSTEM"
+  try {
+    const tracks = await musicYoutubeService.getTrendingTracks(userId)
+    return successResponse(res, 200, tracks)
+  } catch (error: any) {
+    logger(userId, FILE_NAME, "ERROR", "Erreur route getTrendingTracks")
+    return errorResponse(
+      res,
+      500,
+      "Impossible de récupérer les musiques tendances",
+    )
+  }
+}
+
 export const cancelDownload = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id || "SYSTEM"
   try {

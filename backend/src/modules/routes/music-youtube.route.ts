@@ -5,6 +5,7 @@ import {
   searchMusic,
   downloadMusic,
   cancelDownload,
+  getTrendingTracks,
 } from "../controllers/music-youtube.controller"
 import { authMiddleware } from "../middlewares/auth.middleware"
 
@@ -46,6 +47,7 @@ router.use(authMiddleware)
 router.get("/search", searchLimiter, searchMusic)
 router.get("/download/:id", downloadLimiter, downloadMusic)
 router.get("/preview/:id", previewLimiter, getPreview)
+router.get("/trending/tracks", getTrendingTracks)
 router.post("/cancel/:id", cancelDownload)
 
 export default router
